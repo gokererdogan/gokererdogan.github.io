@@ -48,10 +48,12 @@
   <p>Erdogan G., Jacobs R. A. A 3D shape inference model captures human performance better than deep convolutional neural networks.</p>
 </blockquote>
 
+<p>Code for our 3D shape inference model is available online at <a href="https://github.com/gokererdogan/Infer3DShape/releases/tag/cogsci16">https://github.com/gokererdogan/Infer3DShape/releases/tag/cogsci16</a>.</p>
+
 <h3 class="myHeading" id="experimental-stimuli">Experimental Stimuli</h3>
 <p>In the paper, we only show some example stimuli. Below you can see the full set of 90 images used in the experiment. Variations <em>cs</em>: change part size, <em>ap</em>: add part, <em>rp</em>: remove part, <em>mf</em>: change docking face of part. d2 (depth 2) and d3 (depth 3) refer to the level at which the manipulation is applied.</p>
 
-<table>
+<table class="center">
   <thead>
     <tr>
       <th>Base</th>
@@ -180,6 +182,72 @@
 </table>
 
 <h2 class="myHeading" id="results">Results</h2>
+
+<h3 id="samples">Samples</h3>
+<p>Here are some more examples of samples from our model.</p>
+
+<table class="center">
+  <thead>
+    <tr>
+      <th>Input</th>
+      <th>Sample1</th>
+      <th>Sample2</th>
+      <th> </th>
+      <th>Input</th>
+      <th>Sample1</th>
+      <th>Sample2</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><a height="100px" width="100px" href="fig/o1_t2_ap_d1.png"><img height="100px" width="100px" src="fig/o1_t2_ap_d1.png" alt="o1apd1" /></a></td>
+      <td><a height="100px" width="100px" href="fig/samples/o1_ap_d1_1.png"><img height="100px" width="100px" src="fig/samples/o1_ap_d1_1.png" alt="o1apd1s1" /></a></td>
+      <td><a height="100px" width="100px" href="fig/samples/o1_ap_d1_2.png"><img height="100px" width="100px" src="fig/samples/o1_ap_d1_2.png" alt="o1apd1s2" /></a></td>
+      <td> </td>
+      <td><a height="100px" width="100px" href="fig/o1_t1_cs_d1.png"><img height="100px" width="100px" src="fig/o1_t1_cs_d1.png" alt="o1csd1" /></a></td>
+      <td><a height="100px" width="100px" href="fig/samples/o1_cs_d1_1.png"><img height="100px" width="100px" src="fig/samples/o1_cs_d1_1.png" alt="o1csd1s1" /></a></td>
+      <td><a height="100px" width="100px" href="fig/samples/o1_cs_d1_2.png"><img height="100px" width="100px" src="fig/samples/o1_cs_d1_2.png" alt="o1csd1s2" /></a></td>
+    </tr>
+    <tr>
+      <td><a height="100px" width="100px" href="fig/o2_t2_mf_d1.png"><img height="100px" width="100px" src="fig/o2_t2_mf_d1.png" alt="o2mfd1" /></a></td>
+      <td><a height="100px" width="100px" href="fig/samples/o2_mf_d1_1.png"><img height="100px" width="100px" src="fig/samples/o2_mf_d1_1.png" alt="o2mfd1s1" /></a></td>
+      <td><a height="100px" width="100px" href="fig/samples/o2_mf_d1_2.png"><img height="100px" width="100px" src="fig/samples/o2_mf_d1_2.png" alt="o2mfd1s2" /></a></td>
+      <td> </td>
+      <td><a height="100px" width="100px" href="fig/o2_t2_rp_d2.png"><img height="100px" width="100px" src="fig/o2_t2_rp_d2.png" alt="o2rpd2" /></a></td>
+      <td><a height="100px" width="100px" href="fig/samples/o2_rp_d2_1.png"><img height="100px" width="100px" src="fig/samples/o2_rp_d2_1.png" alt="o2rpd2s1" /></a></td>
+      <td><a height="100px" width="100px" href="fig/samples/o2_rp_d2_2.png"><img height="100px" width="100px" src="fig/samples/o2_rp_d2_2.png" alt="o2rpd2s2" /></a></td>
+    </tr>
+    <tr>
+      <td><a height="100px" width="100px" href="fig/o3_t1_cs_d1.png"><img height="100px" width="100px" src="fig/o3_t1_cs_d1.png" alt="o3csd1" /></a></td>
+      <td><a height="100px" width="100px" href="fig/samples/o3_cs_d1_1.png"><img height="100px" width="100px" src="fig/samples/o3_cs_d1_1.png" alt="o3csd1s1" /></a></td>
+      <td><a height="100px" width="100px" href="fig/samples/o3_cs_d1_2.png"><img height="100px" width="100px" src="fig/samples/o3_cs_d1_2.png" alt="o3csd1s2" /></a></td>
+      <td> </td>
+      <td><a height="100px" width="100px" href="fig/o10_t2_rp_d1.png"><img height="100px" width="100px" src="fig/o10_t2_rp_d1.png" alt="o10rpd1" /></a></td>
+      <td><a height="100px" width="100px" href="fig/samples/o10_rp_d1_1.png"><img height="100px" width="100px" src="fig/samples/o10_rp_d1_1.png" alt="o10rpd1s1" /></a></td>
+      <td><a height="100px" width="100px" href="fig/samples/o10_rp_d1_2.png"><img height="100px" width="100px" src="fig/samples/o10_rp_d1_2.png" alt="o10rpd1s2" /></a></td>
+    </tr>
+    <tr>
+      <td><a height="100px" width="100px" href="fig/o5_t2_ap_d1.png"><img height="100px" width="100px" src="fig/o5_t2_ap_d1.png" alt="o5apd1" /></a></td>
+      <td><a height="100px" width="100px" href="fig/samples/o5_ap_d1_1.png"><img height="100px" width="100px" src="fig/samples/o5_ap_d1_1.png" alt="o5apd1s1" /></a></td>
+      <td><a height="100px" width="100px" href="fig/samples/o5_ap_d1_2.png"><img height="100px" width="100px" src="fig/samples/o5_ap_d1_2.png" alt="o5apd1s2" /></a></td>
+      <td> </td>
+      <td><a height="100px" width="100px" href="fig/o6_t2_mf_d1.png"><img height="100px" width="100px" src="fig/o6_t2_mf_d1.png" alt="o6mfd1" /></a></td>
+      <td><a height="100px" width="100px" href="fig/samples/o6_mf_d1_1.png"><img height="100px" width="100px" src="fig/samples/o6_mf_d1_1.png" alt="o6mfd1s1" /></a></td>
+      <td><a height="100px" width="100px" href="fig/samples/o6_mf_d1_2.png"><img height="100px" width="100px" src="fig/samples/o6_mf_d1_2.png" alt="o6mfd1s2" /></a></td>
+    </tr>
+    <tr>
+      <td><a height="100px" width="100px" href="fig/o9_t1_cs_d2.png"><img height="100px" width="100px" src="fig/o9_t1_cs_d2.png" alt="o9csd2" /></a></td>
+      <td><a height="100px" width="100px" href="fig/samples/o9_cs_d2_1.png"><img height="100px" width="100px" src="fig/samples/o9_cs_d2_1.png" alt="o9csd2s1" /></a></td>
+      <td><a height="100px" width="100px" href="fig/samples/o9_cs_d2_2.png"><img height="100px" width="100px" src="fig/samples/o9_cs_d2_2.png" alt="o9csd2s2" /></a></td>
+      <td> </td>
+      <td><a height="100px" width="100px" href="fig/o9_t2_rp_d2.png"><img height="100px" width="100px" src="fig/o9_t2_rp_d2.png" alt="o9rpd2" /></a></td>
+      <td><a height="100px" width="100px" href="fig/samples/o9_rp_d2_1.png"><img height="100px" width="100px" src="fig/samples/o9_rp_d2_1.png" alt="o9rpd2s1" /></a></td>
+      <td><a height="100px" width="100px" href="fig/samples/o9_rp_d2_2.png"><img height="100px" width="100px" src="fig/samples/o9_rp_d2_2.png" alt="o9rpd2s2" /></a></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 class="myHeading" id="model-comparison">Model Comparison</h3>
 <p>In the paper, we only show the figure comparing model performances on all trials. Below is the figure showing model performances only on the high confidence trials.</p>
 
 <p><a height="480px" width="600px" href="fig/ModelAccuraciesHigh.png" title="Model accuracies on high-confidence trials."><img height="480px" width="600px" src="fig/ModelAccuraciesHigh.png" alt="ModelAccuraciesHigh" title="Model accuracies on high-confidence trials." /></a></p>
@@ -188,6 +256,7 @@
 
 <p><a height="480px" width="600px" href="fig/ModelAccuracies.png" title="Model accuracies on all trials."><img height="480px" width="600px" src="fig/ModelAccuracies.png" alt="ModelAccuracies" title="Model accuracies on all trials." /></a></p>
 
+<h3 class="myHeading" id="subject-data-and-model-predictions">Subject Data and Model Predictions</h3>
 <p>Below we also provide detailed results for each model and our experimental data.</p>
 
 <ul>
@@ -204,6 +273,12 @@
 .myHeading 
 {
     margin-top: 50px;
+}
+
+.center
+{
+    margin-left: auto;
+    margin-right: auto;
 }
 </style>
 
