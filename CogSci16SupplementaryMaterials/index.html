@@ -276,11 +276,89 @@
 <h3 class="myHeading" id="model-comparison">Model Comparison</h3>
 <p>In the paper, we only show the figure comparing model performances on all trials. Below is the figure showing model performances only on the high confidence trials.</p>
 
-<p><a height="480px" width="600px" href="fig/ModelAccuraciesHigh.png" title="Model accuracies on high-confidence trials."><img height="480px" width="600px" src="fig/ModelAccuraciesHigh.png" alt="ModelAccuraciesHigh" title="Model accuracies on high-confidence trials." /></a></p>
+<p class="center"><a height="480px" width="600px" href="fig/ModelAccuraciesHigh.png" title="Model accuracies on high-confidence trials."><img height="480px" width="600px" src="fig/ModelAccuraciesHigh.png" alt="ModelAccuraciesHigh" title="Model accuracies on high-confidence trials." /></a></p>
 
 <p>For completeness sake, here is the figure for all trials (Figure 4 in our paper).</p>
 
-<p><a height="480px" width="600px" href="fig/ModelAccuracies.png" title="Model accuracies on all trials."><img height="480px" width="600px" src="fig/ModelAccuracies.png" alt="ModelAccuracies" title="Model accuracies on all trials." /></a></p>
+<p class="center"><a height="480px" width="600px" href="fig/ModelAccuracies.png" title="Model accuracies on all trials."><img height="480px" width="600px" src="fig/ModelAccuracies.png" alt="ModelAccuracies" title="Model accuracies on all trials." /></a></p>
+
+<h3 class="myHeading" id="fitting-cnn-outputs-to-subject-data">Fitting CNN outputs to subject data</h3>
+<p>We assume that shape representations used by our subjects might be some linearly transformed version of the representations learned by CNNs. Subjects’ judgments in our experiment can be thought of as relative similarity constraints; for example, if subjects picked <script type="math/tex">I_i</script> to be more similar to <script type="math/tex">I_j</script> than <script type="math/tex">I_k</script> is, this can be encoded as a constraint of the form <script type="math/tex">s(I_i, I_j) > s(I_i, I_k)</script>. Therefore, we need to learn a linear transformation that satisfies as many of these constraints as possible. Metric learning aims to learn a linear transformation <script type="math/tex">G</script> of shape representations $R(I)$ such that the distances <script type="math/tex">||G R(I_i) - G R(I_j)||</script> and <script type="math/tex">G_M(I_i) - G_M(I_k)||</script> capture subjects’ judgments, i.e., satisfy the relative similarity constraints. This problem can be stated as an optimization problem that can be solved by iterative methods. In order to evaluate each model, we split 70\% of subjects’ similarity judgments into a training set and use the rest as our test set. We learn the linear transformation that maximizes the performance on training set and evaluate performance on the test. We repeat this procedure 50 times to get a performance estimate for each model. We try both diagonal and low-rank <script type="math/tex">G</script> matrices with varying number of rank and report the best results. Tables below shows the performance on all trials and only high-confidence trials for pixel-based model, AlexNet and GoogLeNet. Metric learning seems to help only AlexNet; however, this increase in performance is not significant (p=0.18). Importantly, our model still outperforms all other models significantly (p=0.03 for comparison with AlexNet). If we focus on only high confidence trials, metric learning improves the performance of all models, albeit still not significantly (p&gt;0.05 for all models). Again, our 3D shape inference model is significantly better than all other models (p=0.003 for comparison with AlexNet). These results show that, even if we fit the representations learned by these models to subject data, our model that uses 3D representations better accounts for subjects’ judgments.</p>
+
+<p><br /></p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Model</th>
+      <th>Metric type</th>
+      <th>Accuracy</th>
+      <th>Best accuracy w/o metric learning</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>AlexNet (prob)</td>
+      <td>low rank, r=20</td>
+      <td>0.660</td>
+      <td>0.621</td>
+    </tr>
+  </tbody>
+  <tbody>
+    <tr>
+      <td>GoogLeNet (inception5b)</td>
+      <td>low rank, r= 20</td>
+      <td>0.633</td>
+      <td>0.639</td>
+    </tr>
+  </tbody>
+  <tbody>
+    <tr>
+      <td>Pixel-based</td>
+      <td>low rank, r=10</td>
+      <td>0.566</td>
+      <td>0.582</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><br />
+<br /></p>
+
+<table class="tbl">
+  <thead>
+    <tr>
+      <th>Model</th>
+      <th>Metric type</th>
+      <th>Accuracy</th>
+      <th>Best accuracy w/o metric learning</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>AlexNet,(prob)</td>
+      <td>low rank, r=5</td>
+      <td>0.752</td>
+      <td>0.733</td>
+    </tr>
+  </tbody>
+  <tbody>
+    <tr>
+      <td>GoogLeNet (inception5b)</td>
+      <td>diagonal</td>
+      <td>0.715</td>
+      <td>0.683</td>
+    </tr>
+  </tbody>
+  <tbody>
+    <tr>
+      <td>Pixel-based</td>
+      <td>low rank, r=10</td>
+      <td>0.698</td>
+      <td>0.616</td>
+    </tr>
+  </tbody>
+</table>
 
 <h3 class="myHeading" id="subject-data-and-model-predictions">Subject Data and Model Predictions</h3>
 <p>Below we also provide detailed results for each model and our experimental data.</p>
@@ -295,7 +373,15 @@
   <li>3D ideal observer predictions. <a href="doc/I3D_GT_ModelPredictions.txt">3DIdealObserver_ModelPredictions.txt</a></li>
 </ul>
 
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
 <style type="text/css">
+body
+{
+    text-align: justify;
+}
+
 .myHeading 
 {
     margin-top: 50px;
@@ -305,6 +391,21 @@
 {
     margin-left: auto;
     margin-right: auto;
+}
+
+.tbl
+{
+    margin-left: auto;
+    margin-right: auto;
+    border-collapse: collapse;
+    border: 1px solid black;
+    border-spacing: 5px;
+}
+
+.tbl th, .tbl td, .tbl thead, .tbl tbody 
+{
+    border: 1px solid black;
+    padding: 5px;
 }
 </style>
 
