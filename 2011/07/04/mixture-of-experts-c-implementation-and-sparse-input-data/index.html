@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width initial-scale=1" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <title>Mixture of Experts - C Implementation and Sparse Input Data</title>
+    <meta name="description" content="Goker Erdogan's personal website.
+">
+
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="canonical" href="http://gokererdogan.github.io/2011/07/04/mixture-of-experts-c-implementation-and-sparse-input-data/">
+       <!-- Bootstrap core CSS -->
+    <link href="/css/bootstrap.min.flatly.css" rel="stylesheet">
+       <!-- Syntax highlighting -->
+    <link href="/css/syntax.css" rel="stylesheet">
+</head>
+
+
+  <body>
+
+    <header class="site-header">
+<div class="navbar navbar-default navbar-fixed-top">
+      <div class="container" style="max-width: 1000px;">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">Goker Erdogan</a>
+        </div>
+        <div class="collapse navbar-collapse">
+          <ul class="nav navbar-nav">
+            <li><a href="/index.html#about">About</a></li>
+            <li><a href="/index.html#research">Research Interests</a></li>
+            <li><a href="/index.html#publications">Publications</a></li>
+            <li><a href="/index.html#teaching">Teaching</a></li>
+	    <li><a href="https://github.com/gokererdogan">Code</a></li>
+            <li><a href="/index.html#posts">Blog</a></li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+</div>
+<!--
+  <div class="wrapper">
+
+    <a class="site-title" href="/">Goker Erdogan</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+    </nav>
+
+  </div>
+-->
+</header>
+
+
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Mixture of Experts - C Implementation and Sparse Input Data</h1>
+    <p class="post-meta">Jul 4, 2011 • goker</p>
+  </header>
+
+  <article class="post-content">
+    <p>Recently, I’ve been working on classification of very high dimensional (input dimension ~150.000) and sparse data as a continuation of Artificial Neural Networks course project I’ve finished last semester. I’m currently experimenting with Mixture of Experts architecture to see if it produces better classification rates. As you can see in my last post, first I have implemented MoE model in MATLAB but I needed an implementation that performs faster so I ported my MATLAB code to C with a few additions. Since my focus was on sparse data where most of the input values are zero, I have implemented separate, optimized functions for training and testing with sparse input data. 
+Below you can see sample code to initialize, train and test MoE model with synthetic data I have generated for classification.</p>
+
+<figure class="highlight"><pre><code class="language-c" data-lang="c"><table style="border-spacing: 0"><tbody><tr><td class="gutter gl" style="text-align: right"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76</pre></td><td class="code"><pre><span class="c1">//      ClassifySyntheticData.c
+//      
+//      Copyright 2011 Goker Erdogan &lt;goker@goker-laptop&gt;
+//      
+//      This program is free software; you can redistribute it and/or modify
+//      it under the terms of the GNU General Public License as published by
+//      the Free Software Foundation; either version 2 of the License, or
+//      (at your option) any later version.
+//      
+//      This program is distributed in the hope that it will be useful,
+//      but WITHOUT ANY WARRANTY; without even the implied warranty of
+//      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//      GNU General Public License for more details.
+//      
+//      You should have received a copy of the GNU General Public License
+//      along with this program; if not, write to the Free Software
+//      Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+//      MA 02110-1301, USA.
+</span>
+<span class="cp">#include "MoE.h"
+#include &lt;stdio.h&gt;
+</span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span> <span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span>
+<span class="p">{</span>
+	<span class="kt">int</span> <span class="n">inputDim</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span>
+	<span class="kt">int</span> <span class="n">outputDim</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span>
+	<span class="kt">int</span> <span class="n">expertCount</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span>
+	<span class="kt">int</span> <span class="n">trainCount</span> <span class="o">=</span> <span class="mi">600</span><span class="p">;</span>
+	<span class="kt">int</span> <span class="n">testCount</span> <span class="o">=</span> <span class="mi">400</span><span class="p">;</span>
+	<span class="kt">int</span> <span class="n">iterCount</span> <span class="o">=</span> <span class="mi">5</span><span class="p">;</span>
+	
+	<span class="n">MoEType</span> <span class="o">*</span><span class="n">moe</span> <span class="o">=</span> <span class="n">InitializeMoE</span><span class="p">(</span> <span class="n">inputDim</span><span class="p">,</span> <span class="n">outputDim</span><span class="p">,</span> <span class="n">expertCount</span><span class="p">,</span> <span class="n">COMPETITIVE</span><span class="p">,</span> <span class="mi">0</span><span class="p">.</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">.</span><span class="mi">99</span> <span class="p">);</span>
+	
+	<span class="kt">double</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+	<span class="kt">double</span> <span class="n">rd</span><span class="p">;</span>
+	<span class="kt">int</span> <span class="n">r</span><span class="p">;</span>
+	
+	<span class="kt">FILE</span> <span class="o">*</span><span class="n">tfp</span> <span class="o">=</span> <span class="n">fopen</span><span class="p">(</span><span class="s">"trainMoE.txt"</span><span class="p">,</span><span class="s">"r"</span><span class="p">);</span>
+	<span class="kt">FILE</span> <span class="o">*</span><span class="n">vfp</span> <span class="o">=</span> <span class="n">fopen</span><span class="p">(</span><span class="s">"testMoE.txt"</span><span class="p">,</span><span class="s">"r"</span><span class="p">);</span>
+	
+	<span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+	<span class="kt">int</span> <span class="n">n</span><span class="p">;</span>
+	<span class="kt">int</span> <span class="n">rc</span><span class="p">;</span>
+	<span class="kt">int</span> <span class="n">misclassified</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>	
+	<span class="k">while</span><span class="p">(</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">iterCount</span> <span class="p">)</span>
+	<span class="p">{</span>
+		<span class="n">i</span><span class="o">++</span><span class="p">;</span>
+		<span class="k">for</span> <span class="p">(</span> <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="n">trainCount</span><span class="p">;</span> <span class="n">n</span><span class="o">++</span> <span class="p">)</span>
+		<span class="p">{</span>
+			<span class="n">fscanf</span><span class="p">(</span><span class="n">tfp</span><span class="p">,</span> <span class="s">"%lf %lf %lf</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">rd</span><span class="p">);</span>
+			<span class="n">r</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">rd</span><span class="p">;</span>
+			<span class="n">TrainOnlineD</span><span class="p">(</span><span class="n">moe</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>		
+		<span class="p">}</span>
+		
+		<span class="n">misclassified</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>	
+		<span class="k">for</span> <span class="p">(</span> <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="n">testCount</span><span class="p">;</span> <span class="n">n</span><span class="o">++</span> <span class="p">)</span>
+		<span class="p">{</span>
+			<span class="n">fscanf</span><span class="p">(</span><span class="n">vfp</span><span class="p">,</span> <span class="s">"%lf %lf %lf</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">rd</span><span class="p">);</span>
+			<span class="n">r</span> <span class="o">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">rd</span><span class="p">;</span>
+			<span class="n">rc</span> <span class="o">=</span> <span class="n">TestSample</span><span class="p">(</span><span class="n">moe</span><span class="p">,</span> <span class="n">x</span><span class="p">);</span>
+			<span class="k">if</span> <span class="p">(</span> <span class="n">rc</span> <span class="o">!=</span> <span class="n">r</span> <span class="p">)</span>
+			<span class="p">{</span>
+				<span class="n">misclassified</span><span class="o">++</span><span class="p">;</span>
+			<span class="p">}</span>
+		<span class="p">}</span>
+		
+		<span class="n">printf</span><span class="p">(</span><span class="s">"Iteration %d Classification Rate: %f</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">testCount</span> <span class="o">-</span> <span class="n">misclassified</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">testCount</span><span class="p">);</span>
+	<span class="p">}</span>
+	
+	<span class="n">fclose</span><span class="p">(</span><span class="n">tfp</span><span class="p">);</span>
+	<span class="n">fclose</span><span class="p">(</span><span class="n">vfp</span><span class="p">);</span>	
+	<span class="n">FreeMoE</span><span class="p">(</span><span class="n">moe</span><span class="p">);</span>
+	
+	<span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+
+<span class="p">}</span><span class="w">
+</span></pre></td></tr></tbody></table></code></pre></figure>
+
+<p>You can find data structures and functions for MoE model, synthetic classification dataset and sample code given above in the source code which you can download <a href="/files/MoE_C.rar">here</a>.</p>
+
+  </article>
+
+</div>
+<script type="text/javascript"
+    src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col  footer-col-1">
+        <ul class="contact-list">
+          <li>Goker Erdogan</li>
+          <!-- <li><a href="mailto:gokererdogan@gmail.com">gokererdogan@gmail.com</a></li> -->
+        </ul>
+      </div>
+
+      <div class="footer-col  footer-col-2" style="float: right;">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/gokererdogan">
+              <span class="icon  icon--github">
+                <svg viewBox="0 0 16 16">
+                  <path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/>
+                </svg>
+              </span>
+
+              <span class="username">gokererdogan</span>
+            </a>
+          </li>
+          
+
+          
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-73032750-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+<!-- Bootstrap core JavaScript
+================================================== -->
+<!-- Placed at the end of the document so the pages load faster -->
+<script src="/js/jquery.js"></script>
+<script src="/js/bootstrap.min.js"></script>
+
+
+  </body>
+
+</html>

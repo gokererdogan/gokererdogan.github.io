@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width initial-scale=1" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <title>Uninformed Search and Constraint Satisfaction Problems</title>
+    <meta name="description" content="Goker Erdogan's personal website.
+">
+
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="canonical" href="http://gokererdogan.github.io/2011/02/07/uninformed-search-and-constraint-satisfaction-problems/">
+       <!-- Bootstrap core CSS -->
+    <link href="/css/bootstrap.min.flatly.css" rel="stylesheet">
+       <!-- Syntax highlighting -->
+    <link href="/css/syntax.css" rel="stylesheet">
+</head>
+
+
+  <body>
+
+    <header class="site-header">
+<div class="navbar navbar-default navbar-fixed-top">
+      <div class="container" style="max-width: 1000px;">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">Goker Erdogan</a>
+        </div>
+        <div class="collapse navbar-collapse">
+          <ul class="nav navbar-nav">
+            <li><a href="/index.html#about">About</a></li>
+            <li><a href="/index.html#research">Research Interests</a></li>
+            <li><a href="/index.html#publications">Publications</a></li>
+            <li><a href="/index.html#teaching">Teaching</a></li>
+	    <li><a href="https://github.com/gokererdogan">Code</a></li>
+            <li><a href="/index.html#posts">Blog</a></li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+</div>
+<!--
+  <div class="wrapper">
+
+    <a class="site-title" href="/">Goker Erdogan</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+    </nav>
+
+  </div>
+-->
+</header>
+
+
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Uninformed Search and Constraint Satisfaction Problems</h1>
+    <p class="post-meta">Feb 7, 2011 • goker</p>
+  </header>
+
+  <article class="post-content">
+    <p>Recently, I’ve been busy with the exercises in <a href="http://aima.cs.berkeley.edu/">Artificial Intelligence: A Modern Approach by Russell and Norvig</a>. Third chapter of the book is on uninformed search methods and constraint satisfaction problems. I have implemented a class base that provides capabilities to define various search,  constraint satisfaction problems (CSP) and solve them. I aimed for an implementation that follows the approach in book (I have the 1st edition) closely and tried to make sure that each algorithm resembles the given pseudocodes. Performance was not a consideration for me so there are many different ways to implement better performing code and actually there are already many different libraries available for search and CSPs. All code is implemented in Python3.1.</p>
+
+<p>I have implemented a SearchProblem class that can be used to solve a search problem. A search problem is defined with the following components;</p>
+
+<ul>
+  <li><strong>Initial State</strong>: Starting state for the problem. To be able to solve a problem, we need to find a state representation and define it. This is achieved by sub-classing Search.State class and implementing a few necessary methods.</li>
+  <li><strong>Operators</strong>: Operators generate new states from a given state. Operators are given as functions that return new states from a given one.</li>
+  <li><strong>Goal Test</strong>: Goal test checks a state and tells if we reached our goal and can stop searching. This is also implemented as a function that takes a state as parameter and returns a boolean value</li>
+  <li><strong>Path Cost Function</strong>: Although not necessary for every problem, path cost function gives a cost value for getting to a state from another state. If necessary, a path cost function should take two states as input and return a numeric value representing cost.</li>
+</ul>
+
+<p>Different uninformed search methods are implemented.</p>
+
+<ul>
+  <li><strong>Depth-First</strong></li>
+  <li><strong>Breadth-First</strong></li>
+  <li><strong>Uniform Cost</strong></li>
+  <li><strong>Depth Limited</strong></li>
+  <li><strong>Iterative Deepening</strong></li>
+</ul>
+
+<p>For example, for the famous <a href="http://en.wikipedia.org/wiki/Missionaries_and_cannibals_problem">missionaries and cannibals problem</a>, after defining necessary classes and methods following piece of code solves it with breadth-first search. (Details of the implementation can be found in the source code at the end of post)</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><table style="border-spacing: 0"><tbody><tr><td class="gutter gl" style="text-align: right"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21</pre></td><td class="code"><pre><span class="s">"""
+Problem Definition
+"""</span>
+<span class="c"># operators</span>
+<span class="n">operators</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">operators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Search</span><span class="o">.</span><span class="n">Operator</span><span class="p">(</span><span class="s">"Move 2 M"</span><span class="p">,</span> <span class="n">Move2MAcross</span><span class="p">))</span>
+<span class="n">operators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Search</span><span class="o">.</span><span class="n">Operator</span><span class="p">(</span><span class="s">"Move 1 M"</span><span class="p">,</span> <span class="n">Move1MAcross</span><span class="p">))</span>
+<span class="n">operators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Search</span><span class="o">.</span><span class="n">Operator</span><span class="p">(</span><span class="s">"Move 2 C"</span><span class="p">,</span> <span class="n">Move2CAcross</span><span class="p">))</span>
+<span class="n">operators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Search</span><span class="o">.</span><span class="n">Operator</span><span class="p">(</span><span class="s">"Move 1 C"</span><span class="p">,</span> <span class="n">Move1CAcross</span><span class="p">))</span>
+<span class="n">operators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Search</span><span class="o">.</span><span class="n">Operator</span><span class="p">(</span><span class="s">"Move 1 M 1 C"</span><span class="p">,</span> <span class="n">Move1M1CAcross</span><span class="p">))</span>
+
+<span class="c"># create initial state</span>
+<span class="n">initialState</span> <span class="o">=</span> <span class="n">MCState</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+<span class="c"># define problem</span>
+<span class="n">MCProblem</span> <span class="o">=</span> <span class="n">Search</span><span class="o">.</span><span class="n">SearchProblem</span><span class="p">(</span><span class="n">initialState</span><span class="p">,</span> <span class="n">operators</span><span class="p">,</span> <span class="n">MCGoalTest</span><span class="p">)</span>
+
+<span class="n">node</span> <span class="o">=</span> <span class="n">MCProblem</span><span class="o">.</span><span class="n">BreadthFirstSearch</span><span class="p">()</span>
+<span class="n">solution</span> <span class="o">=</span> <span class="n">MCProblem</span><span class="o">.</span><span class="n">GetSolutionPath</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">solution</span><span class="p">:</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="w">
+</span></pre></td></tr></tbody></table></code></pre></figure>
+
+<p>Solution found;</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>State: 3M 3C |B-| 0M 0C, Depth: 0, Path Cost: 0, Applied Operator: None
+State: 3M 1C |-B| 0M 2C, Depth: 1, Path Cost: 1, Applied Operator: Move 2 C
+State: 3M 2C |B-| 0M 1C, Depth: 2, Path Cost: 2, Applied Operator: Move 1 C
+State: 3M 0C |-B| 0M 3C, Depth: 3, Path Cost: 3, Applied Operator: Move 2 C
+State: 3M 1C |B-| 0M 2C, Depth: 4, Path Cost: 4, Applied Operator: Move 1 C
+State: 1M 1C |-B| 2M 2C, Depth: 5, Path Cost: 5, Applied Operator: Move 2 M
+State: 2M 2C |B-| 1M 1C, Depth: 6, Path Cost: 6, Applied Operator: Move 1 M 1 C
+State: 0M 2C |-B| 3M 1C, Depth: 7, Path Cost: 7, Applied Operator: Move 2 M
+State: 0M 3C |B-| 3M 0C, Depth: 8, Path Cost: 8, Applied Operator: Move 1 C
+State: 0M 1C |-B| 3M 2C, Depth: 9, Path Cost: 9, Applied Operator: Move 2 C
+State: 1M 1C |B-| 2M 2C, Depth: 10, Path Cost: 10, Applied Operator: Move 1 M
+State: 0M 0C |-B| 3M 3C, Depth: 11, Path Cost: 11, Applied Operator: Move 1 M 1 C
+</code></pre>
+</div>
+
+<p>I have implemented necessary state classes, operators and goal tests for the following problems; chain problem (exercise 3.15), sequence prediction problem (exercise 3.16) and <a href="http://en.wikipedia.org/wiki/Fifteen_puzzle">8 Puzzle</a>.</p>
+
+<p>For CSPs, there is no need to define specific state classes for each problem. CSPs are defined with their variables, their domains and constraints. Since CSP is actually a more specific version of a search problem, I have tried to re-use code implemented for search problem as much as possible. CSP class is initialized with variables, their domains and constraint functions and it converts the problem to a search problem, uses depth-first search to solve it. Forward checking is also implemented where a function that returns the illegal values for a specific assignment of variables should be given to CSP class.</p>
+
+<p>For 8-queens problem, following code implements the constraints, forward checking function, defines a CSP and solves it.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><table style="border-spacing: 0"><tbody><tr><td class="gutter gl" style="text-align: right"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46</pre></td><td class="code"><pre><span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">CSP</span>
+
+<span class="k">def</span> <span class="nf">CheckConstraints</span><span class="p">(</span><span class="n">state</span><span class="p">):</span>
+    <span class="c"># for every pair of queen</span>
+    <span class="k">for</span> <span class="n">s1</span><span class="p">,</span> <span class="n">s2</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">combinations</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">assignments</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="mi">2</span><span class="p">):</span>
+        <span class="c">#if 2 queens are on the same column</span>
+        <span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="n">assignments</span><span class="p">[</span><span class="n">s1</span><span class="p">]</span> <span class="o">==</span> <span class="n">state</span><span class="o">.</span><span class="n">assignments</span><span class="p">[</span><span class="n">s2</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+        <span class="c">#if 2 queens are attacking each other diagonally</span>
+        <span class="n">rowDiff</span> <span class="o">=</span> <span class="nb">ord</span><span class="p">(</span><span class="n">s2</span><span class="p">)</span><span class="o">-</span><span class="nb">ord</span><span class="p">(</span><span class="n">s1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="n">assignments</span><span class="p">[</span><span class="n">s1</span><span class="p">]</span> <span class="o">+</span> <span class="n">rowDiff</span> <span class="o">==</span> <span class="n">state</span><span class="o">.</span><span class="n">assignments</span><span class="p">[</span><span class="n">s2</span><span class="p">]</span> <span class="ow">or</span> 
+           <span class="n">state</span><span class="o">.</span><span class="n">assignments</span><span class="p">[</span><span class="n">s1</span><span class="p">]</span> <span class="o">-</span> <span class="n">rowDiff</span> <span class="o">==</span> <span class="n">state</span><span class="o">.</span><span class="n">assignments</span><span class="p">[</span><span class="n">s2</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+    <span class="k">return</span> <span class="bp">True</span>
+
+<span class="k">def</span> <span class="nf">ForwardChecking</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+    <span class="s">"""
+    Return a dictionary of illegal values for each unassigned variable
+    """</span>
+    <span class="c"># find unassigned variables</span>
+    <span class="n">unassignedVars</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">varList</span><span class="p">)</span>
+    <span class="p">[</span> <span class="n">unassignedVars</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">state</span><span class="o">.</span><span class="n">assignments</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="p">]</span>
+    <span class="c"># nextVariable is being assigned right now it is not an unassigned variable</span>
+    <span class="n">unassignedVars</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">nextVariable</span><span class="p">)</span>
+    <span class="c"># dictionary that holds values to be removed for each variable</span>
+    <span class="n">removeVals</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="c"># for every unassigned variable, construct a list of values to be removed</span>
+    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">unassignedVars</span><span class="p">:</span>
+        <span class="n">vals</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c"># two queens can't be on same column</span>
+        <span class="n">vals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+        <span class="c"># add diagonal positions if they are inside boundaries of chess board</span>
+        <span class="n">rowDiff</span> <span class="o">=</span> <span class="nb">ord</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">-</span><span class="nb">ord</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">nextVariable</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">val</span><span class="o">+</span><span class="n">rowDiff</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">val</span><span class="o">+</span><span class="n">rowDiff</span> <span class="o">&lt;=</span> <span class="mi">8</span><span class="p">:</span>
+            <span class="n">vals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="o">+</span><span class="n">rowDiff</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">val</span><span class="o">-</span><span class="n">rowDiff</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">val</span><span class="o">-</span><span class="n">rowDiff</span> <span class="o">&lt;=</span> <span class="mi">8</span><span class="p">:</span>
+            <span class="n">vals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="o">-</span><span class="n">rowDiff</span><span class="p">)</span>
+        <span class="n">removeVals</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">vals</span>
+    <span class="k">return</span> <span class="n">removeVals</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">'__main__'</span><span class="p">:</span>
+    <span class="n">varsAndDomains</span> <span class="o">=</span> <span class="p">{(</span><span class="s">'A'</span><span class="p">,</span><span class="s">'B'</span><span class="p">,</span><span class="s">'C'</span><span class="p">,</span><span class="s">'D'</span><span class="p">,</span><span class="s">'E'</span><span class="p">,</span><span class="s">'F'</span><span class="p">,</span><span class="s">'G'</span><span class="p">,</span><span class="s">'H'</span><span class="p">):[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">8</span><span class="p">]}</span>
+    <span class="n">csp</span> <span class="o">=</span> <span class="n">CSP</span><span class="o">.</span><span class="n">CSP</span><span class="p">(</span><span class="n">varsAndDomains</span><span class="p">,</span> <span class="p">[</span><span class="n">CheckConstraints</span><span class="p">],</span> <span class="n">ForwardChecking</span><span class="p">)</span>
+    <span class="n">node</span> <span class="o">=</span> <span class="n">csp</span><span class="o">.</span><span class="n">Solve</span><span class="p">()</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">node</span><span class="p">)</span><span class="w">
+</span></pre></td></tr></tbody></table></code></pre></figure>
+
+<p>Solution found for the problem (each letter corresponds to a row on chess board and values are columns where queen is located);</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>State: {'A': 1, 'C': 8, 'B': 5, 'E': 3, 'D': 6, 'G': 2, 'F': 7, 'H': 4}, Depth: 8, Path Cost: 8, Applied Operator: Assign Value
+</code></pre>
+</div>
+
+<p>You can also find definition of a <a href="http://en.wikipedia.org/wiki/Verbal_arithmetic">cryptarithmetic problem</a> given in the book in source code.</p>
+
+<p><a href="/files/AIAMA_C3.zip">Source Code</a></p>
+
+<p>Feel free to contact me for any bug reports, suggestions and I’d be glad to answer your questions.</p>
+
+  </article>
+
+</div>
+<script type="text/javascript"
+    src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col  footer-col-1">
+        <ul class="contact-list">
+          <li>Goker Erdogan</li>
+          <!-- <li><a href="mailto:gokererdogan@gmail.com">gokererdogan@gmail.com</a></li> -->
+        </ul>
+      </div>
+
+      <div class="footer-col  footer-col-2" style="float: right;">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/gokererdogan">
+              <span class="icon  icon--github">
+                <svg viewBox="0 0 16 16">
+                  <path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/>
+                </svg>
+              </span>
+
+              <span class="username">gokererdogan</span>
+            </a>
+          </li>
+          
+
+          
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-73032750-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+<!-- Bootstrap core JavaScript
+================================================== -->
+<!-- Placed at the end of the document so the pages load faster -->
+<script src="/js/jquery.js"></script>
+<script src="/js/bootstrap.min.js"></script>
+
+
+  </body>
+
+</html>

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width initial-scale=1" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <title>Informed Search Methods</title>
+    <meta name="description" content="Goker Erdogan's personal website.
+">
+
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="canonical" href="http://gokererdogan.github.io/2011/02/11/informed-search-methods/">
+       <!-- Bootstrap core CSS -->
+    <link href="/css/bootstrap.min.flatly.css" rel="stylesheet">
+       <!-- Syntax highlighting -->
+    <link href="/css/syntax.css" rel="stylesheet">
+</head>
+
+
+  <body>
+
+    <header class="site-header">
+<div class="navbar navbar-default navbar-fixed-top">
+      <div class="container" style="max-width: 1000px;">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">Goker Erdogan</a>
+        </div>
+        <div class="collapse navbar-collapse">
+          <ul class="nav navbar-nav">
+            <li><a href="/index.html#about">About</a></li>
+            <li><a href="/index.html#research">Research Interests</a></li>
+            <li><a href="/index.html#publications">Publications</a></li>
+            <li><a href="/index.html#teaching">Teaching</a></li>
+	    <li><a href="https://github.com/gokererdogan">Code</a></li>
+            <li><a href="/index.html#posts">Blog</a></li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+</div>
+<!--
+  <div class="wrapper">
+
+    <a class="site-title" href="/">Goker Erdogan</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+    </nav>
+
+  </div>
+-->
+</header>
+
+
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Informed Search Methods</h1>
+    <p class="post-meta">Feb 11, 2011 • goker</p>
+  </header>
+
+  <article class="post-content">
+    <p>Continuing from my last post, I have been dealing with the 4th chapter in <a href="http://aima.cs.berkeley.edu/">AIAMA</a> book which is on informed search methods.  Informed search methods use <a href="http://en.wikipedia.org/wiki/Heuristic#Computer_science">heuristic</a> functions to guide them to goal states quicker so Search.SearcProblem class takes a list of heuristic functions for the problem and in order to use informed search methods you need to provide at least one heuristic function. Heuristic functions provided are assumed to be <a href="http://en.wikipedia.org/wiki/Admissible_heuristic">admissible</a> since this is necessary for some informed search methods to produce optimal solutions. If multiple heuristic functions are given, <a href="http://en.wikipedia.org/wiki/Heuristic_function#Finding_heuristics">dominating</a> one (which yields a bigger heuristic value) is used for each node. In order to ensure <a href="http://en.wikipedia.org/wiki/Consistent_heuristic">monotonicity</a>, if a child node’s total estimated path cost (sum of actual path cost so far and heuristic value for that node) is less than its parent’s, its parent’s total path cost is used which is called <a href="http://en.wikipedia.org/wiki/Consistent_heuristic">pathmax equation</a>.
+I have added the following search methods to the Search module I have implemented.</p>
+
+<ul>
+  <li><strong><a href="http://en.wikipedia.org/wiki/Greedy_search">Greedy Search</a></strong>: This method only uses the heuristic function to guide the search procedure.</li>
+  <li><strong><a href="http://en.wikipedia.org/wiki/A*">A* Search</a></strong>: A* uses total estimated path cost (sum of path cost so far and heuristic value) to choose the next node to expand. This simple search method is both complete and optimal making it one of the most important methods.</li>
+  <li><strong><a href="http://en.wikipedia.org/wiki/IDA*">Iterative Deepening A* Search</a></strong>: Like the counterpart in uninformed methods, IDA* runs multiple consecutive A* methods each covering more of the search space. However, A* uses a limit on the total estimated path cost not the search tree depth as it was in IDS.</li>
+</ul>
+
+<p>For testing the code and demonstration, I have added heuristic functions for the two problems that I have implemented earlier and solved them with informed methods. I have also included very primitive GUIs for these problems where a random problem is drawn onto window and can be solved with the <em>Solve</em> button.</p>
+
+<p>Misplaced tiles and Manhattan Distance heuristics are implemented for <a href="http://en.wikipedia.org/wiki/N-puzzle">8Puzzle</a> problem. A sample code and screenshot of GUI can be seen below.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><table style="border-spacing: 0"><tbody><tr><td class="gutter gl" style="text-align: right"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12</pre></td><td class="code"><pre><span class="n">initialGrid</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">9</span><span class="p">))</span>
+<span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">initialGrid</span><span class="p">)</span>
+<span class="n">initialState</span> <span class="o">=</span> <span class="n">EightPuzzleState</span><span class="p">(</span><span class="n">initialGrid</span><span class="p">)</span>
+<span class="n">operators</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">operators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Search</span><span class="o">.</span><span class="n">Operator</span><span class="p">(</span><span class="s">"Move Blank Left"</span><span class="p">,</span> <span class="n">MoveBlankLeft</span><span class="p">))</span>
+<span class="n">operators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Search</span><span class="o">.</span><span class="n">Operator</span><span class="p">(</span><span class="s">"Move Blank Right"</span><span class="p">,</span> <span class="n">MoveBlankRight</span><span class="p">))</span>
+<span class="n">operators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Search</span><span class="o">.</span><span class="n">Operator</span><span class="p">(</span><span class="s">"Move Blank Up"</span><span class="p">,</span> <span class="n">MoveBlankUp</span><span class="p">))</span>
+<span class="n">operators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Search</span><span class="o">.</span><span class="n">Operator</span><span class="p">(</span><span class="s">"Move Blank Down"</span><span class="p">,</span> <span class="n">MoveBlankDown</span><span class="p">))</span>
+<span class="n">problem</span> <span class="o">=</span> <span class="n">Search</span><span class="o">.</span><span class="n">SearchProblem</span><span class="p">(</span><span class="n">initialState</span><span class="p">,</span> <span class="n">operators</span><span class="p">,</span> <span class="n">EightPuzzleGoalTest</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="p">[</span><span class="n">MisplacedTilesHeuristic</span><span class="p">,</span> <span class="n">ManhattanDistanceHeuristic</span><span class="p">])</span> 
+<span class="n">node</span> <span class="o">=</span> <span class="n">problem</span><span class="o">.</span><span class="n">IterativeDeepeningAStarSearch</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">problem</span><span class="o">.</span><span class="n">GetSolutionPath</span><span class="p">(</span><span class="n">node</span><span class="p">):</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="w">
+</span></pre></td></tr></tbody></table></code></pre></figure>
+
+<p><a href="/img/8puzzle.png"><img src="/img/8puzzle.png" alt="fig8PuzzleGUI" /></a></p>
+
+<p>Note that some of the randomly generated puzzled are inherently hard and can take a long time to solve it. But worse is that some of the puzzles cannot be solved at all but program will try to find a solution and will probably crash. Take a look at the article on <a href="http://en.wikipedia.org/wiki/N-puzzle">N-Puzzle in Wikipedia</a> for a detailed analysis of this puzzle.
+The other search problem you can find in source code is yet another famous problem, <a href="http://en.wikipedia.org/wiki/Travelling_salesman_problem">Traveling Salesman Problem (TSP)</a>. I have implemented <a href="http://en.wikipedia.org/wiki/Minimum_spanning_tree">minimum spanning tree</a> construction with <a href="http://en.wikipedia.org/wiki/Prim's_algorithm">Prim’s algorithm</a> and used the total cost of tree as a heuristic value for TSP. Below you can see the sample code and screenshot.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><table style="border-spacing: 0"><tbody><tr><td class="gutter gl" style="text-align: right"><pre class="lineno">1
+2
+3
+4
+5
+6
+7</pre></td><td class="code"><pre><span class="n">tsp</span> <span class="o">=</span> <span class="n">TSP</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span>
+<span class="n">initialState</span> <span class="o">=</span> <span class="n">TSPState</span><span class="p">([],</span> <span class="mi">0</span><span class="p">,</span> <span class="p">[],</span> <span class="n">tsp</span><span class="p">)</span>
+<span class="n">operators</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">operators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Search</span><span class="o">.</span><span class="n">Operator</span><span class="p">(</span><span class="s">"Add new edge"</span><span class="p">,</span> <span class="n">TSPGenerateNewStates</span><span class="p">))</span>
+<span class="n">problem</span> <span class="o">=</span> <span class="n">Search</span><span class="o">.</span><span class="n">SearchProblem</span><span class="p">(</span><span class="n">initialState</span><span class="p">,</span> <span class="n">operators</span><span class="p">,</span> <span class="n">TSPGoalTest</span><span class="p">,</span> <span class="n">TSPPathCost</span><span class="p">,</span> <span class="p">[</span><span class="n">CalculateMinimumSpanningTreeCost</span><span class="p">])</span>
+<span class="n">node</span> <span class="o">=</span> <span class="n">problem</span><span class="o">.</span><span class="n">AStarSearch</span><span class="p">()</span>
+<span class="k">print</span><span class="p">(</span><span class="n">node</span><span class="p">)</span><span class="w">
+</span></pre></td></tr></tbody></table></code></pre></figure>
+
+<p><a href="/img/tsp.png"><img src="/img/tsp.png" alt="figTravellingSalesmanProblemGUI" /></a></p>
+
+<p>As usual, all source code is implemented with <a href="http://www.python.org/download/releases/3.1/">Python 3.1</a> and I have used <a href="http://www.tcl.tk/">Tk</a> for GUI programming.<br />
+I’d be happy to hear your questions, comments &amp; suggestions.<br />
+Source Code <a href="/files/AIAMA_C4.zip">Download</a></p>
+
+
+  </article>
+
+</div>
+<script type="text/javascript"
+    src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col  footer-col-1">
+        <ul class="contact-list">
+          <li>Goker Erdogan</li>
+          <!-- <li><a href="mailto:gokererdogan@gmail.com">gokererdogan@gmail.com</a></li> -->
+        </ul>
+      </div>
+
+      <div class="footer-col  footer-col-2" style="float: right;">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/gokererdogan">
+              <span class="icon  icon--github">
+                <svg viewBox="0 0 16 16">
+                  <path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/>
+                </svg>
+              </span>
+
+              <span class="username">gokererdogan</span>
+            </a>
+          </li>
+          
+
+          
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-73032750-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+<!-- Bootstrap core JavaScript
+================================================== -->
+<!-- Placed at the end of the document so the pages load faster -->
+<script src="/js/jquery.js"></script>
+<script src="/js/bootstrap.min.js"></script>
+
+
+  </body>
+
+</html>
