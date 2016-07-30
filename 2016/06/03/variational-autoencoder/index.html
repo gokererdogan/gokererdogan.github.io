@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width initial-scale=1" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <title>Variational Autoencoder</title>
+    <meta name="description" content="Goker Erdogan's personal website.
+">
+
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="canonical" href="http://gokererdogan.github.io/2016/06/03/variational-autoencoder/">
+       <!-- Bootstrap core CSS -->
+    <link href="/css/bootstrap.min.flatly.css" rel="stylesheet">
+       <!-- Syntax highlighting -->
+    <link href="/css/syntax.css" rel="stylesheet">
+</head>
+
+
+  <body>
+
+    <header class="site-header">
+<div class="navbar navbar-default navbar-fixed-top">
+      <div class="container" style="max-width: 1000px;">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">Goker Erdogan</a>
+        </div>
+        <div class="collapse navbar-collapse">
+          <ul class="nav navbar-nav">
+            <li><a href="/index.html#about">About</a></li>
+            <li><a href="/index.html#research">Research Interests</a></li>
+            <li><a href="/index.html#publications">Publications</a></li>
+            <li><a href="/index.html#teaching">Teaching</a></li>
+	    <li><a href="https://github.com/gokererdogan">Code</a></li>
+            <li><a href="/index.html#posts">Blog</a></li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+</div>
+<!--
+  <div class="wrapper">
+
+    <a class="site-title" href="/">Goker Erdogan</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+    </nav>
+
+  </div>
+-->
+</header>
+
+
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Variational Autoencoder</h1>
+    <p class="post-meta">Jun 3, 2016 • goker</p>
+  </header>
+
+  <article class="post-content">
+    <p>I have recently implemented the variational autoencoder proposed in Kingma and Welling (2014)<sup id="fnref:1"><a href="#fn:1" class="footnote">1</a></sup>. This is a rather interesting unsupervised learning model. In contrast to most earlier work, Kingma and Welling (2014)<sup id="fnref:1:1"><a href="#fn:1" class="footnote">1</a></sup> optimize the variational lower bound directly using gradient ascent. What makes this possible is a trick they call the reparameterization trick. I am hoping to write another post later on what this trick is and how it helps in reducing the variance of the gradient estimates. Here I just wanted to share my implementation. This model is surprisingly easy to implement. Below is an implementation in <a href="http://deeplearning.net/software/theano/">theano</a> with a replication of Figure4b from their paper.</p>
+
+<p>I also implemented a sampling layer for <a href="http://lasagne.readthedocs.io/en/latest/">lasagne</a> which can be used to implement this model in <a href="http://lasagne.readthedocs.io/en/latest/">lasagne</a>. Code is <a href="https://github.com/gokererdogan/DeepLearning/tree/master/variational_autoencoder">here</a> on github.</p>
+
+<p style="margin-left: auto; margin-right: auto; text-align: center;"><img src="/img/VariationalAutoencoder4b.png" alt="Fig4b from Kingma and Welling (2014)" width="400px" /></p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="s">"""
+A Theano implementation of the variational autoencoder proposed in
+    Kingma, D. P., &amp; Welling, M. (2014). Auto-Encoding Variational Bayes.
+    arXiv:1312.6114
+28 May 2016
+goker erdogan
+https://github.com/gokererdogan
+"""</span>
+<span class="kn">import</span> <span class="nn">cPickle</span> <span class="kn">as</span> <span class="nn">pkl</span>
+<span class="kn">import</span> <span class="nn">gzip</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">theano</span>
+<span class="kn">import</span> <span class="nn">theano.tensor</span> <span class="kn">as</span> <span class="nn">T</span>
+<span class="kn">from</span> <span class="nn">theano.tensor.shared_randomstreams</span> <span class="kn">import</span> <span class="n">RandomStreams</span>
+
+<span class="kn">from</span> <span class="nn">DeepLearning.common</span> <span class="kn">import</span> <span class="n">load_mnist</span>
+
+<span class="c"># functions used for initializing weights and biases</span>
+<span class="k">def</span> <span class="nf">init_weight</span><span class="p">(</span><span class="o">*</span><span class="n">shape</span><span class="p">):</span>
+    <span class="k">return</span> <span class="mf">0.01</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="o">*</span><span class="n">shape</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">init_bias</span><span class="p">(</span><span class="o">*</span><span class="n">shape</span><span class="p">):</span>
+    <span class="k">return</span> <span class="mf">0.01</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="o">*</span><span class="n">shape</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">"__main__"</span><span class="p">:</span>
+    <span class="c"># BUILD THE MODEL</span>
+
+    <span class="c"># random number generator used for sampling latent variables</span>
+    <span class="n">srng</span> <span class="o">=</span> <span class="n">RandomStreams</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="mi">123</span><span class="p">)</span>
+
+    <span class="c"># model parameters</span>
+    <span class="n">minibatch_size</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="n">input_dim</span> <span class="o">=</span> <span class="mi">784</span>
+    <span class="c"># number of hidden units in encoder (x -&gt; z) network</span>
+    <span class="n">encoder_hidden_dim</span> <span class="o">=</span> <span class="mi">500</span>
+    <span class="c"># number of hidden units in decoder (z -&gt; x) network</span>
+    <span class="n">decoder_hidden_dim</span> <span class="o">=</span> <span class="mi">500</span>
+    <span class="c"># number of latent variables</span>
+    <span class="n">latent_dim</span> <span class="o">=</span> <span class="mi">2</span>  <span class="c"># pairs of mu and sigma</span>
+
+    <span class="c"># input to the network</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">fmatrix</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">'x'</span><span class="p">)</span>
+
+    <span class="c"># Encoder network hidden layer</span>
+    <span class="n">w1</span> <span class="o">=</span> <span class="n">theano</span><span class="o">.</span><span class="n">shared</span><span class="p">(</span><span class="n">init_weight</span><span class="p">(</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">encoder_hidden_dim</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s">'w1'</span><span class="p">)</span>
+    <span class="n">b1</span> <span class="o">=</span> <span class="n">theano</span><span class="o">.</span><span class="n">shared</span><span class="p">(</span><span class="n">init_bias</span><span class="p">(</span><span class="n">encoder_hidden_dim</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s">'b1'</span><span class="p">)</span>
+    <span class="n">h1</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">w1</span><span class="p">)</span> <span class="o">+</span> <span class="n">b1</span><span class="p">)</span>
+
+    <span class="c"># Encoder network outputs: means and standard deviations of the Gaussian distribution </span>
+    <span class="c"># p(z|mu, sigma)</span>
+    <span class="n">w_mu</span> <span class="o">=</span> <span class="n">theano</span><span class="o">.</span><span class="n">shared</span><span class="p">(</span><span class="n">init_weight</span><span class="p">(</span><span class="n">encoder_hidden_dim</span><span class="p">,</span> <span class="n">latent_dim</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s">'w_mu'</span><span class="p">)</span>
+    <span class="n">b_mu</span> <span class="o">=</span> <span class="n">theano</span><span class="o">.</span><span class="n">shared</span><span class="p">(</span><span class="n">init_bias</span><span class="p">(</span><span class="n">latent_dim</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s">'b_mu'</span><span class="p">)</span>
+    <span class="n">mu</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span> <span class="n">w_mu</span><span class="p">)</span> <span class="o">+</span> <span class="n">b_mu</span>
+
+    <span class="n">w_sigma</span> <span class="o">=</span> <span class="n">theano</span><span class="o">.</span><span class="n">shared</span><span class="p">(</span><span class="n">init_weight</span><span class="p">(</span><span class="n">encoder_hidden_dim</span><span class="p">,</span> <span class="n">latent_dim</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s">'w_sigma'</span><span class="p">)</span>
+    <span class="n">b_sigma</span> <span class="o">=</span> <span class="n">theano</span><span class="o">.</span><span class="n">shared</span><span class="p">(</span><span class="n">init_bias</span><span class="p">(</span><span class="n">latent_dim</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s">'b_sigma'</span><span class="p">)</span>
+    <span class="n">sigma</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span> <span class="n">w_sigma</span><span class="p">)</span> <span class="o">+</span> <span class="n">b_sigma</span>
+
+    <span class="c"># Latent variables</span>
+    <span class="c"># Sample z from Normal(z|mu, sigma) using the reparameterization trick.</span>
+    <span class="n">eps</span> <span class="o">=</span> <span class="n">srng</span><span class="o">.</span><span class="n">normal</span><span class="p">((</span><span class="n">minibatch_size</span><span class="p">,</span> <span class="n">latent_dim</span><span class="p">))</span>  <span class="c"># draw random normal values</span>
+    <span class="n">z</span> <span class="o">=</span> <span class="n">mu</span> <span class="o">+</span> <span class="p">(</span><span class="n">eps</span> <span class="o">*</span> <span class="n">T</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">sigma</span><span class="p">))</span>  <span class="c"># calculate latent variables</span>
+
+    <span class="c"># Decoder network hidden layer</span>
+    <span class="n">w2</span> <span class="o">=</span> <span class="n">theano</span><span class="o">.</span><span class="n">shared</span><span class="p">(</span><span class="n">init_weight</span><span class="p">(</span><span class="n">latent_dim</span><span class="p">,</span> <span class="n">decoder_hidden_dim</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s">'w2'</span><span class="p">)</span>
+    <span class="n">b2</span> <span class="o">=</span> <span class="n">theano</span><span class="o">.</span><span class="n">shared</span><span class="p">(</span><span class="n">init_bias</span><span class="p">(</span><span class="n">decoder_hidden_dim</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s">'b2'</span><span class="p">)</span>
+    <span class="n">h2</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">w2</span><span class="p">)</span> <span class="o">+</span> <span class="n">b2</span><span class="p">)</span>
+
+    <span class="c"># Decoder network output</span>
+    <span class="n">w3</span> <span class="o">=</span> <span class="n">theano</span><span class="o">.</span><span class="n">shared</span><span class="p">(</span><span class="n">init_weight</span><span class="p">(</span><span class="n">decoder_hidden_dim</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s">'w3'</span><span class="p">)</span>
+    <span class="n">b3</span> <span class="o">=</span> <span class="n">theano</span><span class="o">.</span><span class="n">shared</span><span class="p">(</span><span class="n">init_bias</span><span class="p">(</span><span class="n">input_dim</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s">'b3'</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">nnet</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">h2</span><span class="p">,</span> <span class="n">w3</span><span class="p">)</span> <span class="o">+</span> <span class="n">b3</span><span class="p">)</span>
+
+    <span class="c"># LOSS FUNCTION</span>
+    <span class="c"># first KL term in Eqn. 10 in the paper. Acts as a regularization on latent variables.</span>
+    <span class="n">ll_bound_kl_term</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">+</span> <span class="n">T</span><span class="o">.</span><span class="nb">sum</span><span class="p">(</span><span class="mf">2.</span> <span class="o">*</span> <span class="n">sigma</span><span class="p">)</span> <span class="o">-</span>
+                              <span class="n">T</span><span class="o">.</span><span class="nb">sum</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">mu</span><span class="p">))</span> <span class="o">-</span>
+                              <span class="n">T</span><span class="o">.</span><span class="nb">sum</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">2.</span> <span class="o">*</span> <span class="n">sigma</span><span class="p">)))</span> <span class="o">/</span> <span class="n">minibatch_size</span>
+
+    <span class="c"># second term in Eqn. 10, measures data fit. </span>
+    <span class="c"># Note because the outputs are 0-1, we use binary crossentropy.</span>
+    <span class="n">ll_bound_fit_term</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="nb">sum</span><span class="p">(</span><span class="o">-</span><span class="mf">1.</span> <span class="o">*</span> <span class="n">T</span><span class="o">.</span><span class="n">nnet</span><span class="o">.</span><span class="n">binary_crossentropy</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">))</span> <span class="o">/</span> <span class="n">minibatch_size</span>
+
+    <span class="c"># this is the log likelihood lower bound that we want to maximize</span>
+    <span class="n">ll_bound</span> <span class="o">=</span> <span class="n">ll_bound_kl_term</span> <span class="o">+</span> <span class="n">ll_bound_fit_term</span>
+
+    <span class="c"># L2 regularization</span>
+    <span class="c"># We add L2 regularization on model parameters. This can be achieved by adding </span>
+    <span class="c"># the Frobenius norm of each model parameter to loss function.</span>
+
+    <span class="c"># L2 regularization weight</span>
+    <span class="n">lamda</span> <span class="o">=</span> <span class="mf">0.01</span>
+    <span class="c"># cost = -log ll bound + (lambda * L2 regularizer)</span>
+    <span class="n">cost</span> <span class="o">=</span> <span class="o">-</span><span class="n">ll_bound</span> <span class="o">+</span> <span class="n">lamda</span> <span class="o">*</span> <span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="nb">sum</span><span class="p">(</span><span class="n">w1</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">T</span><span class="o">.</span><span class="nb">sum</span><span class="p">(</span><span class="n">b1</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">T</span><span class="o">.</span><span class="nb">sum</span><span class="p">(</span><span class="n">w_mu</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> 
+                                <span class="n">T</span><span class="o">.</span><span class="nb">sum</span><span class="p">(</span><span class="n">b_mu</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">T</span><span class="o">.</span><span class="nb">sum</span><span class="p">(</span><span class="n">w_sigma</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span>
+                                <span class="n">T</span><span class="o">.</span><span class="nb">sum</span><span class="p">(</span><span class="n">b_sigma</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">T</span><span class="o">.</span><span class="nb">sum</span><span class="p">(</span><span class="n">w2</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> 
+                                <span class="n">T</span><span class="o">.</span><span class="nb">sum</span><span class="p">(</span><span class="n">b2</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">T</span><span class="o">.</span><span class="nb">sum</span><span class="p">(</span><span class="n">w3</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> 
+                                <span class="n">T</span><span class="o">.</span><span class="nb">sum</span><span class="p">(</span><span class="n">b3</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+
+    <span class="c"># theano function that calculates the gradient of the cost wrt to model parameters</span>
+    <span class="n">dw1</span><span class="p">,</span> <span class="n">db1</span><span class="p">,</span> <span class="n">dw_mu</span><span class="p">,</span> <span class="n">db_mu</span><span class="p">,</span> <span class="n">dw_sigma</span><span class="p">,</span> <span class="n">db_sigma</span><span class="p">,</span> <span class="n">dw2</span><span class="p">,</span> <span class="n">db2</span><span class="p">,</span> <span class="n">dw3</span><span class="p">,</span> <span class="n">db3</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">cost</span><span class="p">,</span> 
+                                                                            <span class="p">[</span><span class="n">w1</span><span class="p">,</span> <span class="n">b1</span><span class="p">,</span> <span class="n">w_mu</span><span class="p">,</span> 
+                                                                             <span class="n">b_mu</span><span class="p">,</span> <span class="n">w_sigma</span><span class="p">,</span> 
+                                                                             <span class="n">b_sigma</span><span class="p">,</span> <span class="n">w2</span><span class="p">,</span> 
+                                                                             <span class="n">b2</span><span class="p">,</span> <span class="n">w3</span><span class="p">,</span> <span class="n">b3</span><span class="p">])</span>
+    <span class="c"># theano function for getting the output of the model for a given input</span>
+    <span class="n">predict</span> <span class="o">=</span> <span class="n">theano</span><span class="o">.</span><span class="n">function</span><span class="p">([</span><span class="n">x</span><span class="p">],</span> <span class="n">y</span><span class="p">)</span>
+
+    <span class="c"># TRAINING</span>
+
+    <span class="n">learning_rate</span> <span class="o">=</span> <span class="mf">0.001</span>  <span class="c"># my experience shows that larger learning rates lead to divergence</span>
+
+    <span class="c"># number of training epochs, i.e., passes over training set.</span>
+    <span class="c"># there are 50.000 samples in training set. 200 epochs means training over </span>
+    <span class="c"># 10.000.000 samples. In the paper, they keep training for much longer (around 100.000.000)</span>
+    <span class="n">epoch_count</span> <span class="o">=</span> <span class="mi">500</span>
+
+    <span class="c"># report log_likelihood bound on training after this many training samples</span>
+    <span class="n">report_interval</span> <span class="o">=</span> <span class="mi">20000</span>
+
+    <span class="c"># load the training data</span>
+    <span class="p">(</span><span class="n">tx</span><span class="p">,</span> <span class="n">ty</span><span class="p">),</span> <span class="p">(</span><span class="n">vx</span><span class="p">,</span> <span class="n">vy</span><span class="p">),</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="n">load_mnist</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="s">'../datasets'</span><span class="p">)</span>
+    <span class="n">train_n</span> <span class="o">=</span> <span class="n">tx</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">val_n</span> <span class="o">=</span> <span class="n">vx</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="c"># we load the data into shared variables, this is recommended if you do training on GPU.</span>
+    <span class="n">train_x</span> <span class="o">=</span> <span class="n">theano</span><span class="o">.</span><span class="n">shared</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">tx</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+    <span class="n">val_x</span> <span class="o">=</span> <span class="n">theano</span><span class="o">.</span><span class="n">shared</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">vx</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+
+    <span class="c"># index of the first sample in batch</span>
+    <span class="n">batch_start</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">lscalar</span><span class="p">()</span>
+
+    <span class="c"># Theano function for training</span>
+    <span class="c"># This function feeds the current batch to model and applies </span>
+    <span class="c"># simple gradient descent updates on model parameters</span>
+    <span class="n">train_model</span> <span class="o">=</span> <span class="n">theano</span><span class="o">.</span><span class="n">function</span><span class="p">([</span><span class="n">batch_start</span><span class="p">],</span> <span class="n">ll_bound</span><span class="p">,</span>
+                                  <span class="n">updates</span><span class="o">=</span><span class="p">((</span><span class="n">w1</span><span class="p">,</span> <span class="n">w1</span> <span class="o">-</span> <span class="n">learning_rate</span> <span class="o">*</span> <span class="n">dw1</span><span class="p">),</span>
+                                           <span class="p">(</span><span class="n">b1</span><span class="p">,</span> <span class="n">b1</span> <span class="o">-</span> <span class="n">learning_rate</span> <span class="o">*</span> <span class="n">db1</span><span class="p">),</span>
+                                           <span class="p">(</span><span class="n">w_mu</span><span class="p">,</span> <span class="n">w_mu</span> <span class="o">-</span> <span class="n">learning_rate</span> <span class="o">*</span> <span class="n">dw_mu</span><span class="p">),</span>
+                                           <span class="p">(</span><span class="n">b_mu</span><span class="p">,</span> <span class="n">b_mu</span> <span class="o">-</span> <span class="n">learning_rate</span> <span class="o">*</span> <span class="n">db_mu</span><span class="p">),</span>
+                                           <span class="p">(</span><span class="n">w_sigma</span><span class="p">,</span> <span class="n">w_sigma</span> <span class="o">-</span> <span class="n">learning_rate</span> <span class="o">*</span> <span class="n">dw_sigma</span><span class="p">),</span>
+                                           <span class="p">(</span><span class="n">b_sigma</span><span class="p">,</span> <span class="n">b_sigma</span> <span class="o">-</span> <span class="n">learning_rate</span> <span class="o">*</span> <span class="n">db_sigma</span><span class="p">),</span>
+                                           <span class="p">(</span><span class="n">w2</span><span class="p">,</span> <span class="n">w2</span> <span class="o">-</span> <span class="n">learning_rate</span> <span class="o">*</span> <span class="n">dw2</span><span class="p">),</span>
+                                           <span class="p">(</span><span class="n">b2</span><span class="p">,</span> <span class="n">b2</span> <span class="o">-</span> <span class="n">learning_rate</span> <span class="o">*</span> <span class="n">db2</span><span class="p">),</span>
+                                           <span class="p">(</span><span class="n">w3</span><span class="p">,</span> <span class="n">w3</span> <span class="o">-</span> <span class="n">learning_rate</span> <span class="o">*</span> <span class="n">dw3</span><span class="p">),</span>
+                                           <span class="p">(</span><span class="n">b3</span><span class="p">,</span> <span class="n">b3</span> <span class="o">-</span> <span class="n">learning_rate</span> <span class="o">*</span> <span class="n">db3</span><span class="p">)),</span>
+                                  <span class="n">givens</span><span class="o">=</span><span class="p">{</span><span class="n">x</span><span class="p">:</span> <span class="n">train_x</span><span class="p">[</span><span class="n">batch_start</span><span class="p">:(</span><span class="n">batch_start</span><span class="o">+</span><span class="n">minibatch_size</span><span class="p">)]})</span>
+
+    <span class="c"># Theano function for calculating log ll bound on validation set</span>
+    <span class="n">validate_model</span> <span class="o">=</span> <span class="n">theano</span><span class="o">.</span><span class="n">function</span><span class="p">([</span><span class="n">batch_start</span><span class="p">],</span> <span class="n">ll_bound</span><span class="p">,</span>
+                                     <span class="n">givens</span><span class="o">=</span><span class="p">{</span><span class="n">x</span><span class="p">:</span> <span class="n">val_x</span><span class="p">[</span><span class="n">batch_start</span><span class="p">:(</span><span class="n">batch_start</span><span class="o">+</span><span class="n">minibatch_size</span><span class="p">)]})</span>
+
+    <span class="c"># arrays for keeping track of log ll bounds on training and validation sets</span>
+    <span class="n">train_ll</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">val_ll</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c"># TRAINING LOOP</span>
+    <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">epoch_count</span><span class="p">):</span>
+        <span class="n">ll</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">train_n</span><span class="p">,</span> <span class="n">minibatch_size</span><span class="p">):</span>
+            <span class="n">cll</span> <span class="o">=</span> <span class="n">train_model</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>  <span class="c"># one step of gradient descent</span>
+            <span class="n">ll</span> <span class="o">+=</span> <span class="n">cll</span>
+            <span class="c"># report log ll bound</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="n">minibatch_size</span><span class="p">)</span> <span class="o">%</span> <span class="n">report_interval</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">ll</span> <span class="o">=</span> <span class="p">(</span><span class="n">ll</span> <span class="o">*</span> <span class="n">minibatch_size</span><span class="p">)</span> <span class="o">/</span> <span class="n">report_interval</span>
+                <span class="k">print</span> <span class="s">"|Epoch {0:d}|</span><span class="se">\t</span><span class="s">Train ll: {1:f}"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span>
+                <span class="n">train_ll</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ll</span><span class="p">)</span>
+                <span class="n">ll</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+        <span class="c"># epoch over, shuffle training data</span>
+        <span class="n">train_x</span> <span class="o">=</span> <span class="n">theano</span><span class="o">.</span><span class="n">shared</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">tx</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="n">train_n</span><span class="p">)],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+
+        <span class="c"># calculate log ll on validation and report it</span>
+        <span class="n">ll</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">val_n</span><span class="p">,</span> <span class="n">minibatch_size</span><span class="p">):</span>
+            <span class="n">cll</span> <span class="o">=</span> <span class="n">validate_model</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="n">ll</span> <span class="o">+=</span> <span class="n">cll</span>
+
+        <span class="n">ll</span> <span class="o">=</span> <span class="p">(</span><span class="n">ll</span> <span class="o">*</span> <span class="n">minibatch_size</span><span class="p">)</span> <span class="o">/</span> <span class="n">val_n</span>
+        <span class="k">print</span> <span class="s">"|Epoch {0:d}|</span><span class="se">\t</span><span class="s">Val ll: {1:f}"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span>
+        <span class="n">val_ll</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ll</span><span class="p">)</span>
+
+    <span class="k">print</span><span class="p">(</span><span class="s">"Training over."</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">latent_dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">"Generating latent space figure"</span><span class="p">)</span>
+        <span class="n">img</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">28</span><span class="o">*</span><span class="mi">20</span><span class="p">,</span> <span class="mi">28</span><span class="o">*</span><span class="mi">20</span><span class="p">))</span>
+
+        <span class="c"># function for calculating x given z</span>
+        <span class="n">generate_fn</span> <span class="o">=</span> <span class="n">theano</span><span class="o">.</span><span class="n">function</span><span class="p">([</span><span class="n">z</span><span class="p">],</span> <span class="n">y</span><span class="p">)</span>
+
+        <span class="c"># calculate min and max latent variable values over validation set</span>
+        <span class="n">calc_latent</span> <span class="o">=</span> <span class="n">theano</span><span class="o">.</span><span class="n">function</span><span class="p">([</span><span class="n">batch_start</span><span class="p">],</span> <span class="n">z</span><span class="p">,</span> 
+                        <span class="n">givens</span><span class="o">=</span><span class="p">{</span><span class="n">x</span><span class="p">:</span> <span class="n">val_x</span><span class="p">[</span><span class="n">batch_start</span><span class="p">:(</span><span class="n">batch_start</span><span class="o">+</span><span class="n">minibatch_size</span><span class="p">)]})</span>
+        <span class="n">minz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="n">maxz</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">val_n</span><span class="p">,</span> <span class="n">minibatch_size</span><span class="p">):</span>
+            <span class="n">val_z</span> <span class="o">=</span> <span class="n">calc_latent</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="nb">min</span><span class="p">(</span><span class="n">val_z</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">minz</span><span class="p">:</span>
+                <span class="n">minz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="nb">min</span><span class="p">(</span><span class="n">val_z</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="nb">max</span><span class="p">(</span><span class="n">val_z</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">maxz</span><span class="p">:</span>
+                <span class="n">maxz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="nb">max</span><span class="p">(</span><span class="n">val_z</span><span class="p">)</span>
+
+        <span class="n">zvals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">minz</span><span class="p">,</span> <span class="n">maxz</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">z1</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">zvals</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">z2</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">zvals</span><span class="p">):</span>
+                <span class="n">xp</span> <span class="o">=</span> <span class="n">generate_fn</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="n">z1</span><span class="p">,</span> <span class="n">z2</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)])</span>
+                <span class="n">img</span><span class="p">[(</span><span class="n">i</span><span class="o">*</span><span class="mi">28</span><span class="p">):((</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="mi">28</span><span class="p">),</span> <span class="p">(</span><span class="n">j</span><span class="o">*</span><span class="mi">28</span><span class="p">):((</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="mi">28</span><span class="p">)]</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">))</span>
+
+        <span class="s">"""
+        import matplotlib.pyplot as plt
+        plt.style.use('classic')
+        plt.imshow(img, cmap='gray')
+        """</span>
+
+        <span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">misc</span>
+        <span class="n">misc</span><span class="o">.</span><span class="n">imsave</span><span class="p">(</span><span class="s">'Fig4b.png'</span><span class="p">,</span> <span class="n">img</span><span class="p">)</span></code></pre></figure>
+
+<h4 id="bibliography">Bibliography</h4>
+
+<div class="footnotes">
+  <ol>
+    <li id="fn:1">
+      <p>Kingma, D. P., &amp; Welling, M. (2014). Auto-Encoding Variational Bayes. arXiv:1312.6114 <a href="#fnref:1" class="reversefootnote">&#8617;</a> <a href="#fnref:1:1" class="reversefootnote">&#8617;<sup>2</sup></a></p>
+    </li>
+  </ol>
+</div>
+
+  </article>
+
+</div>
+<script type="text/javascript"
+    src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col  footer-col-1">
+        <ul class="contact-list">
+          <li>Goker Erdogan</li>
+          <!-- <li><a href="mailto:gokererdogan@gmail.com">gokererdogan@gmail.com</a></li> -->
+        </ul>
+      </div>
+
+      <div class="footer-col  footer-col-2" style="float: right;">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/gokererdogan">
+              <span class="icon  icon--github">
+                <svg viewBox="0 0 16 16">
+                  <path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/>
+                </svg>
+              </span>
+
+              <span class="username">gokererdogan</span>
+            </a>
+          </li>
+          
+
+          
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-73032750-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+<!-- Bootstrap core JavaScript
+================================================== -->
+<!-- Placed at the end of the document so the pages load faster -->
+<script src="/js/jquery.js"></script>
+<script src="/js/bootstrap.min.js"></script>
+
+
+  </body>
+
+</html>

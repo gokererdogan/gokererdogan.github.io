@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width initial-scale=1" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <title>Reparameterization Trick</title>
+    <meta name="description" content="Goker Erdogan's personal website.
+">
+
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="canonical" href="http://gokererdogan.github.io/2016/07/01/reparameterization-trick/">
+       <!-- Bootstrap core CSS -->
+    <link href="/css/bootstrap.min.flatly.css" rel="stylesheet">
+       <!-- Syntax highlighting -->
+    <link href="/css/syntax.css" rel="stylesheet">
+</head>
+
+
+  <body>
+
+    <header class="site-header">
+<div class="navbar navbar-default navbar-fixed-top">
+      <div class="container" style="max-width: 1000px;">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">Goker Erdogan</a>
+        </div>
+        <div class="collapse navbar-collapse">
+          <ul class="nav navbar-nav">
+            <li><a href="/index.html#about">About</a></li>
+            <li><a href="/index.html#research">Research Interests</a></li>
+            <li><a href="/index.html#publications">Publications</a></li>
+            <li><a href="/index.html#teaching">Teaching</a></li>
+	    <li><a href="https://github.com/gokererdogan">Code</a></li>
+            <li><a href="/index.html#posts">Blog</a></li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+</div>
+<!--
+  <div class="wrapper">
+
+    <a class="site-title" href="/">Goker Erdogan</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+    </nav>
+
+  </div>
+-->
+</header>
+
+
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Reparameterization Trick</h1>
+    <p class="post-meta">Jul 1, 2016 • goker</p>
+  </header>
+
+  <article class="post-content">
+    <p>Note: The IPython notebook for this post can be seen <a href="https://github.com/gokererdogan/Notebooks">here</a>.</p>
+
+<p>Here we will try to understand the reparameterization trick used by Kingma and Welling (2014)<sup id="fnref:1"><a href="#fn:1" class="footnote">1</a></sup> to train their variational autoencoder.</p>
+
+<p>Assume we have a normal distribution <script type="math/tex">q</script> that is parameterized by <script type="math/tex">\theta</script>, specifically <script type="math/tex">q_{\theta}(x) = N(\theta,1)</script>. We want to solve the below problem</p>
+
+<script type="math/tex; mode=display">\text{min}_{\theta} \quad E_q[x^2]</script>
+
+<p>This is of course a rather silly problem and the optimal <script type="math/tex">\theta</script> is obvious. But here we just want to understand how the reparameterization trick helps in calculating the gradient of this objective <script type="math/tex">E_q[x^2]</script>.</p>
+
+<p>The usual way to calculate <script type="math/tex">\nabla_{\theta} E_q[x^2]</script> is as follows</p>
+
+<script type="math/tex; mode=display">\nabla_{\theta} E_q[x^2] = \nabla_{\theta} \int q_{\theta}(x) x^2 dx = \int \nabla_{\theta} q_{\theta}(x) \frac{q_{\theta}(x)}{q_{\theta}(x)} dx = \int \nabla_{\theta} \log q_{\theta}(x) x^2 dx = E_q[x^2 \nabla_{\theta} \log q_{\theta}(x)]</script>
+
+<p>which makes use of <script type="math/tex">\nabla_{\theta} q_{\theta} = q_{\theta} \nabla_{\theta} \log q_{\theta}</script>. This trick is also the basis of the REINFORCE<sup id="fnref:2"><a href="#fn:2" class="footnote">2</a></sup> algorithm used in policy gradient.</p>
+
+<p>For our example where <script type="math/tex">q_{\theta}(x) = N(\theta,1)</script>, this method gives</p>
+
+<script type="math/tex; mode=display">\nabla_{\theta} E_q[x^2] = E_q[x^2 (x-\theta)]</script>
+
+<p>Reparameterization trick is a way to rewrite the expectation so that the distribution with respect to which we take the gradient is independent of parameter <script type="math/tex">\theta</script>. To achieve this, we need to <strong>make the stochastic element in</strong> <script type="math/tex">q</script> <strong>independent of</strong> <script type="math/tex">\theta</script>. Hence, we write <script type="math/tex">x</script> as</p>
+
+<script type="math/tex; mode=display">x = \theta + \epsilon, \quad \epsilon \sim N(0,1)</script>
+
+<p>Then, we can write</p>
+
+<script type="math/tex; mode=display">E_q[x^2] = E_p[(\theta+\epsilon)^2]</script>
+
+<p>where <script type="math/tex">p</script> is the distribution of <script type="math/tex">\epsilon</script>, i.e., <script type="math/tex">N(0,1)</script>. Now we can write the derivative of <script type="math/tex">E_q[x^2]</script> as follows</p>
+
+<script type="math/tex; mode=display">\nabla_{\theta} E_q[x^2] = \nabla_{\theta} E_p[(\theta+\epsilon)^2] = E_p[2(\theta+\epsilon)]</script>
+
+<p>Now let us compare the variances of the two methods; we are hoping to see that the first method has high variance while reparameterization trick decreases the variance substantially.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="n">N</span> <span class="o">=</span> <span class="mi">1000</span>
+<span class="n">theta</span> <span class="o">=</span> <span class="mf">2.0</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">N</span><span class="p">)</span> <span class="o">+</span> <span class="n">theta</span>
+<span class="n">eps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+
+<span class="n">grad1</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="nb">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">x</span><span class="o">-</span><span class="n">theta</span><span class="p">))</span> <span class="o">/</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span>
+<span class="n">grad2</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">eps</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="nb">sum</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">theta</span> <span class="o">+</span> <span class="n">eps</span><span class="p">))</span> <span class="o">/</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span>
+
+<span class="k">print</span> <span class="n">grad1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="k">print</span> <span class="n">grad2</span><span class="p">(</span><span class="n">eps</span><span class="p">)</span></code></pre></figure>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>4.46239612174
+4.1840532024
+</code></pre>
+</div>
+
+<p style="margin-top: 20px;">Let us plot the variance for different sample sizes.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">Ns</span> <span class="o">=</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">10000</span><span class="p">,</span> <span class="mi">100000</span><span class="p">]</span>
+<span class="n">reps</span> <span class="o">=</span> <span class="mi">100</span>
+
+<span class="n">means1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">Ns</span><span class="p">))</span>
+<span class="n">vars1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">Ns</span><span class="p">))</span>
+<span class="n">means2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">Ns</span><span class="p">))</span>
+<span class="n">vars2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">Ns</span><span class="p">))</span>
+
+<span class="n">est1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">reps</span><span class="p">)</span>
+<span class="n">est2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">reps</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">N</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">Ns</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">reps</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">N</span><span class="p">)</span> <span class="o">+</span> <span class="n">theta</span>
+        <span class="n">est1</span><span class="p">[</span><span class="n">r</span><span class="p">]</span> <span class="o">=</span> <span class="n">grad1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">eps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+        <span class="n">est2</span><span class="p">[</span><span class="n">r</span><span class="p">]</span> <span class="o">=</span> <span class="n">grad2</span><span class="p">(</span><span class="n">eps</span><span class="p">)</span>
+    <span class="n">means1</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">est1</span><span class="p">)</span>
+    <span class="n">means2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">est2</span><span class="p">)</span>
+    <span class="n">vars1</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="n">est1</span><span class="p">)</span>
+    <span class="n">vars2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="n">est2</span><span class="p">)</span>
+    
+<span class="k">print</span> <span class="n">means1</span>
+<span class="k">print</span> <span class="n">means2</span>
+<span class="k">print</span>
+<span class="k">print</span> <span class="n">vars1</span>
+<span class="k">print</span> <span class="n">vars2</span></code></pre></figure>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>[ 3.8409546   3.97298803  4.03007634  3.98531095  3.99579423]
+[ 3.97775271  4.00232825  3.99894536  4.00353734  3.99995899]
+
+[  6.45307927e+00   6.80227241e-01   8.69226368e-02   1.00489791e-02
+   8.62396526e-04]
+[  4.59767676e-01   4.26567475e-02   3.33699503e-03   5.17148975e-04
+   4.65338152e-05]
+</code></pre>
+</div>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="o">%</span><span class="n">matplotlib</span> <span class="n">inline</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">vars1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">vars2</span><span class="p">)</span></code></pre></figure>
+
+<p style="text-align: center;"><img src="/img/ReparameterizationTrick.png" alt="Variance of naive gradient estimate vs. estimate with reparameterization trick" /></p>
+
+<p>Variance of the estimates using reparameterization trick is one order of magnitude smaller than the estimates from the first method!</p>
+
+<h4 id="bibliography">Bibliography</h4>
+
+<div class="footnotes">
+  <ol>
+    <li id="fn:1">
+      <p>Kingma, D. P., &amp; Welling, M. (2014). Auto-Encoding Variational Bayes. arXiv:1312.6114 <a href="#fnref:1" class="reversefootnote">&#8617;</a></p>
+    </li>
+    <li id="fn:2">
+      <p>Williams, R. J. (1992). Simple Statistical Gradient-following Algorithms for Connectionist Reinforcement Learning. Machine Learning, 8(3–4), 229–256. <a href="#fnref:2" class="reversefootnote">&#8617;</a></p>
+    </li>
+  </ol>
+</div>
+
+  </article>
+
+</div>
+<script type="text/javascript"
+    src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col  footer-col-1">
+        <ul class="contact-list">
+          <li>Goker Erdogan</li>
+          <!-- <li><a href="mailto:gokererdogan@gmail.com">gokererdogan@gmail.com</a></li> -->
+        </ul>
+      </div>
+
+      <div class="footer-col  footer-col-2" style="float: right;">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/gokererdogan">
+              <span class="icon  icon--github">
+                <svg viewBox="0 0 16 16">
+                  <path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/>
+                </svg>
+              </span>
+
+              <span class="username">gokererdogan</span>
+            </a>
+          </li>
+          
+
+          
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-73032750-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+<!-- Bootstrap core JavaScript
+================================================== -->
+<!-- Placed at the end of the document so the pages load faster -->
+<script src="/js/jquery.js"></script>
+<script src="/js/bootstrap.min.js"></script>
+
+
+  </body>
+
+</html>
