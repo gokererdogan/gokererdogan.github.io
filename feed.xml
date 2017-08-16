@@ -2,13 +2,401 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Goker Erdogan</title>
-    <description>Goker Erdogan&#39;s personal website.
+    <description>Goker Erdogan's personal website.
 </description>
     <link>http://gokererdogan.github.io/</link>
     <atom:link href="http://gokererdogan.github.io/feed.xml" rel="self" type="application/rss+xml" />
-    <pubDate>Tue, 04 Jul 2017 17:46:51 -0400</pubDate>
-    <lastBuildDate>Tue, 04 Jul 2017 17:46:51 -0400</lastBuildDate>
-    <generator>Jekyll v3.1.6</generator>
+    <pubDate>Wed, 16 Aug 2017 14:12:57 +0300</pubDate>
+    <lastBuildDate>Wed, 16 Aug 2017 14:12:57 +0300</lastBuildDate>
+    <generator>Jekyll v3.5.1</generator>
+    
+      <item>
+        <title>Variational Autoencoder Explained</title>
+        <description>&lt;p&gt;&lt;em&gt;Note: This post is an exposition of the mathematics behind the variational autoencoder. A PDF version (with equation numbers and better formatting) can be seen &lt;a href=&quot;http://www2.bcs.rochester.edu/sites/jacobslab/cheat_sheet/VariationalAutoEncoder.pdf&quot;&gt;here&lt;/a&gt;. I also have two earlier posts that are relevant to the variational autoencoder: one on &lt;a href=&quot;/2016/06/03/variational-autoencoder/&quot;&gt;the implementation of the variational autoencoder&lt;/a&gt;, and one on &lt;a href=&quot;/2016/07/01/reparameterization-trick/&quot;&gt;the reparameterization trick&lt;/a&gt;&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;The variational autoencoder (VA)&lt;sup id=&quot;fnref:1&quot;&gt;&lt;a href=&quot;#fn:1&quot; class=&quot;footnote&quot;&gt;1&lt;/a&gt;&lt;/sup&gt; is a
+nonlinear latent variable model with an efficient gradient-based
+training procedure based on variational principles. In latent variable
+models, we assume that the observed &lt;script type=&quot;math/tex&quot;&gt;x&lt;/script&gt; are generated from some latent
+(unobserved) &lt;script type=&quot;math/tex&quot;&gt;z&lt;/script&gt;; these latent variables capture some “interesting”
+structure in the observed data that is not immediately visible from the
+observations themselves. For example, a latent variable model called
+independent components analysis can be used to separate the individual
+speech signals from a recording of people talking simultaneously. More
+formally, we can think of a latent variable model as a probability
+distribution &lt;script type=&quot;math/tex&quot;&gt;p(x|z)&lt;/script&gt; describing the generative process (of how &lt;script type=&quot;math/tex&quot;&gt;x&lt;/script&gt; is
+generated from &lt;script type=&quot;math/tex&quot;&gt;z&lt;/script&gt;) along with a prior &lt;script type=&quot;math/tex&quot;&gt;p(z)&lt;/script&gt; on latent variables &lt;script type=&quot;math/tex&quot;&gt;z&lt;/script&gt;.
+This corresponds to the following simple graphical model
+&lt;script type=&quot;math/tex&quot;&gt;z \rightarrow x&lt;/script&gt;&lt;/p&gt;
+
+&lt;h4 id=&quot;learning-in-a-latent-variable-model&quot;&gt;Learning in a latent variable model&lt;/h4&gt;
+
+&lt;p&gt;Our purpose in such a model is to learn the generative process, i.e.,
+&lt;script type=&quot;math/tex&quot;&gt;p(x|z)&lt;/script&gt; (we assume &lt;script type=&quot;math/tex&quot;&gt;p(z)&lt;/script&gt; is known). A good &lt;script type=&quot;math/tex&quot;&gt;p(x|z)&lt;/script&gt; would assign high
+probabilities to observed &lt;script type=&quot;math/tex&quot;&gt;x&lt;/script&gt;; hence, we can learn a good &lt;script type=&quot;math/tex&quot;&gt;p(x|z)&lt;/script&gt; by
+maximizing the probability of observed data, i.e., &lt;script type=&quot;math/tex&quot;&gt;p(x)&lt;/script&gt;. Assuming that
+&lt;script type=&quot;math/tex&quot;&gt;p(x|z)&lt;/script&gt; is parameterized by &lt;script type=&quot;math/tex&quot;&gt;\theta&lt;/script&gt;, we need to solve the following
+optimization problem&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;\max_{\theta}\,\, p_{\theta}(x)&lt;/script&gt;
+
+&lt;p&gt;where &lt;script type=&quot;math/tex&quot;&gt;p_{\theta}(x)=\int_z p(z) p_{\theta}(x|z)&lt;/script&gt;. This is a difficult
+optimization problem because it involves a possibly intractable integral
+over &lt;script type=&quot;math/tex&quot;&gt;z&lt;/script&gt;.&lt;/p&gt;
+
+&lt;h4 id=&quot;posterior-inference-in-a-latent-variable-model&quot;&gt;Posterior inference in a latent variable model&lt;/h4&gt;
+
+&lt;p&gt;For the moment, let us set aside this learning problem and focus on a
+different one: posterior inference of &lt;script type=&quot;math/tex&quot;&gt;p(z|x)&lt;/script&gt;. As we will see shortly,
+this problem is closely related to the learning problem and in fact
+leads to a method for solving it. Given &lt;script type=&quot;math/tex&quot;&gt;p(z)&lt;/script&gt; and &lt;script type=&quot;math/tex&quot;&gt;p(x|z)&lt;/script&gt;, we would
+like to infer the posterior distribution &lt;script type=&quot;math/tex&quot;&gt;p(z|x)&lt;/script&gt;. This is usually
+rather difficult because it involves an integral over &lt;script type=&quot;math/tex&quot;&gt;z&lt;/script&gt;,
+&lt;script type=&quot;math/tex&quot;&gt;p(z|x)=\frac{p(x,z)}{\int_z p(x,z)}&lt;/script&gt;. For most latent variable models,
+this integral cannot be evaluated, and &lt;script type=&quot;math/tex&quot;&gt;p(z|x)&lt;/script&gt; needs to be
+approximated. For example, we can use Markov chain Monte Carlo
+techniques to sample from the posterior. However, here we will look at
+an alternative technique based on variational inference. Variational
+inference converts the posterior inference problem into the optimization
+problem of finding an approximate probability distribution &lt;script type=&quot;math/tex&quot;&gt;q(z|x)&lt;/script&gt; that
+is as close as possible to &lt;script type=&quot;math/tex&quot;&gt;p(z|x)&lt;/script&gt;. This can be formalized as solving
+the following optimization problem&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;\min_{\phi}\,\, \text{KL}(q_{\phi}(z|x) || p(z|x))&lt;/script&gt;
+
+&lt;p&gt;where &lt;script type=&quot;math/tex&quot;&gt;\phi&lt;/script&gt; parameterizes the approximation &lt;script type=&quot;math/tex&quot;&gt;q&lt;/script&gt; and &lt;script type=&quot;math/tex&quot;&gt;\text{KL}(q||p)&lt;/script&gt; denotes the
+Kullback-Leibler divergence between &lt;script type=&quot;math/tex&quot;&gt;q&lt;/script&gt; and &lt;script type=&quot;math/tex&quot;&gt;p&lt;/script&gt; and is given by
+&lt;script type=&quot;math/tex&quot;&gt;\text{KL}(q||p)=\int_x q(x) \log \frac{q(x)}{p(x)}&lt;/script&gt;. However, this
+optimization problem is no easier than our original problem because it
+still requires us to evaluate &lt;script type=&quot;math/tex&quot;&gt;p(z|x)&lt;/script&gt;. Let us see if we can get around
+that. Plugging in the definition of KL, we can write,&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;% &lt;![CDATA[
+\begin{aligned}
+    \text{KL}(q_{\phi}(z|x) || p(z|x)) &amp;= \int_z q_{\phi}(z|x) \log \frac{q_{\phi}(z|x)}{p(z|x)} \\
+                                       &amp;= \int_z q_{\phi}(z|x) \log \frac{q_{\phi}(z|x) p(x)}{p(x,z)} \\
+                                       &amp;= \int_z q_{\phi}(z|x) \log \frac{q_{\phi}(z|x)}{p(x,z)} + \int_z q_{\phi}(z|x) \log p(x) \\
+                                       &amp;= -\mathcal{L}(\phi) + \log p(x) \\
+\end{aligned} %]]&gt;&lt;/script&gt;
+
+&lt;p&gt;where we defined&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;\begin{aligned}
+    \mathcal{L}(\phi) = \int_z q_{\phi}(z|x) \log \frac{p(x,z)}{q_{\phi}(z|x)}. 
+\end{aligned}&lt;/script&gt;
+
+&lt;p&gt;Since &lt;script type=&quot;math/tex&quot;&gt;p(x)&lt;/script&gt; is independent of &lt;script type=&quot;math/tex&quot;&gt;q_{\phi}(z|x)&lt;/script&gt;, minimizing
+&lt;script type=&quot;math/tex&quot;&gt;\text{KL}(q_{\phi}(z|x)||p(z|x))&lt;/script&gt; is equivalent to maximizing
+&lt;script type=&quot;math/tex&quot;&gt;\mathcal{L}(\phi)&lt;/script&gt;. Note that optimizing &lt;script type=&quot;math/tex&quot;&gt;\mathcal{L}(\phi)&lt;/script&gt; is much
+easier since it only involves &lt;script type=&quot;math/tex&quot;&gt;p(x,z) = p(z) p(x|z)&lt;/script&gt; which does not
+involve any intractable integrals. Hence, we can do variational
+inference of the posterior in a latent variable model by solving the
+following optimization problem&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;\max_{\phi}\,\, \mathcal{L}(\phi)&lt;/script&gt;
+
+&lt;h4 id=&quot;back-to-the-learning-problem&quot;&gt;Back to the learning problem&lt;/h4&gt;
+
+&lt;p&gt;The above derivation also suggests a way for learning the generative
+model &lt;script type=&quot;math/tex&quot;&gt;p(x|z)&lt;/script&gt;. We see that &lt;script type=&quot;math/tex&quot;&gt;\mathcal{L}(\phi)&lt;/script&gt; is in fact a lower bound
+on the log probability of observed data &lt;script type=&quot;math/tex&quot;&gt;p(x)&lt;/script&gt;&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;% &lt;![CDATA[
+\begin{aligned}
+    \text{KL}(q_{\phi}(z|x) || p(z|x)) &amp;= -\mathcal{L}(\phi) + \log p(x) \\
+     \mathcal{L}(\phi) &amp;= \log p(x) - \text{KL}(q_{\phi}(z|x) || p(z|x)) \\
+     \mathcal{L}(\phi) &amp;\le \log p(x) \\
+\end{aligned} %]]&gt;&lt;/script&gt;
+
+&lt;p&gt;where we used the fact that KL is never negative. Now, assume instead of doing
+posterior inference, we fix &lt;script type=&quot;math/tex&quot;&gt;q&lt;/script&gt; and learn the generative model
+&lt;script type=&quot;math/tex&quot;&gt;p_{\theta}(x|z)&lt;/script&gt;. Then &lt;script type=&quot;math/tex&quot;&gt;\mathcal{L}&lt;/script&gt; is now a function of &lt;script type=&quot;math/tex&quot;&gt;\theta&lt;/script&gt;,
+&lt;script type=&quot;math/tex&quot;&gt;\mathcal{L}(\theta)=\int_z q(z|x) \log \frac{p(z) p_{\theta}(x|z)}{q(z|x)}&lt;/script&gt;.
+Since &lt;script type=&quot;math/tex&quot;&gt;\mathcal{L}&lt;/script&gt; is a lower bound on &lt;script type=&quot;math/tex&quot;&gt;\log p(x)&lt;/script&gt;, we can maximize
+&lt;script type=&quot;math/tex&quot;&gt;\mathcal{L}&lt;/script&gt; as a proxy for maximizing &lt;script type=&quot;math/tex&quot;&gt;\log p(x)&lt;/script&gt;. In fact, if
+&lt;script type=&quot;math/tex&quot;&gt;q(z|x) = p(z|x)&lt;/script&gt;, the KL term will be zero and
+&lt;script type=&quot;math/tex&quot;&gt;\mathcal{L}(\theta) = \log p(x)&lt;/script&gt;, i.e., maximizing &lt;script type=&quot;math/tex&quot;&gt;\mathcal{L}&lt;/script&gt; will
+be equivalent to maximizing &lt;script type=&quot;math/tex&quot;&gt;p(x)&lt;/script&gt;. This suggests maximizing
+&lt;script type=&quot;math/tex&quot;&gt;\mathcal{L}&lt;/script&gt; with respect to both &lt;script type=&quot;math/tex&quot;&gt;\theta&lt;/script&gt; and &lt;script type=&quot;math/tex&quot;&gt;\phi&lt;/script&gt; to learn
+&lt;script type=&quot;math/tex&quot;&gt;q_{\phi}(z|x)&lt;/script&gt; and &lt;script type=&quot;math/tex&quot;&gt;p_{\theta}(x|z)&lt;/script&gt; at the same time.&lt;/p&gt;
+
+&lt;p&gt;&lt;script type=&quot;math/tex&quot;&gt;\begin{aligned}
+    \max_{\theta, \phi}\,\, \mathcal{L}(\theta, \phi)
+    \label{eqnOptimProblem}\end{aligned}&lt;/script&gt; where &lt;script type=&quot;math/tex&quot;&gt;% &lt;![CDATA[
+\begin{aligned}
+    \mathcal{L}(\theta, \phi) &amp;= \int_z q_{\phi}(z|x) \log \frac{p(z) p_{\theta}(x|z)}{q_{\phi}(z|x)} \\ 
+                              &amp;= \mathbb{E}_{q}\left[\log \frac{p(z) p_{\theta}(x|z)}{q_{\phi}(z|x)}\right] \notag
+\end{aligned} %]]&gt;&lt;/script&gt;&lt;/p&gt;
+
+&lt;h4 id=&quot;a-brief-aside-on-expectation-maximization-em&quot;&gt;A brief aside on expectation maximization (EM)&lt;/h4&gt;
+
+&lt;p&gt;EM can be seen as one particular strategy for solving the above
+maximization problem. In EM, the E step
+consists of calculating the optimal &lt;script type=&quot;math/tex&quot;&gt;q_{\phi}(z|x)&lt;/script&gt; based on the current
+&lt;script type=&quot;math/tex&quot;&gt;\theta&lt;/script&gt; (which is the posterior &lt;script type=&quot;math/tex&quot;&gt;p_{\theta}(z|x)&lt;/script&gt;). In the M step, we
+plug the optimal &lt;script type=&quot;math/tex&quot;&gt;q_{\phi}(z|x)&lt;/script&gt; into &lt;script type=&quot;math/tex&quot;&gt;\mathcal{L}&lt;/script&gt; and maximize it with
+respect to &lt;script type=&quot;math/tex&quot;&gt;\theta&lt;/script&gt;. In other words, EM can be seen as a coordinate
+ascent procedure that maximizes &lt;script type=&quot;math/tex&quot;&gt;\mathcal{L}&lt;/script&gt; with respect to &lt;script type=&quot;math/tex&quot;&gt;\phi&lt;/script&gt; and
+&lt;script type=&quot;math/tex&quot;&gt;\theta&lt;/script&gt; in alternation.&lt;/p&gt;
+
+&lt;h4 id=&quot;solving-the-maximization-problem&quot;&gt;Solving the maximization problem&lt;/h4&gt;
+
+&lt;p&gt;One can use various techniques to solve the above maximization problem.
+Here, we will focus on stochastic gradient ascent since the variational
+autoencoder uses this technique. In gradient-based approaches, we
+evaluate the gradient of our objective with respect to model parameters
+and take a small step in the direction of the gradient. Therefore, we
+need to estimate the gradient of &lt;script type=&quot;math/tex&quot;&gt;\mathcal{L}(\theta, \phi)&lt;/script&gt;. Assuming
+we have a set of samples &lt;script type=&quot;math/tex&quot;&gt;z^{(l)}, l=1\dots L&lt;/script&gt; from &lt;script type=&quot;math/tex&quot;&gt;q_{\phi}(z|x)&lt;/script&gt;, we
+can form the following Monte Carlo estimate of &lt;script type=&quot;math/tex&quot;&gt;\mathcal{L}&lt;/script&gt;&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;% &lt;![CDATA[
+\begin{aligned}
+    \mathcal{L}(\theta, \phi) &amp;\approx \frac{1}{L} \sum_{l=1}^{L} \log p_{\theta}(x, z^{(l)}) - \log q_{\phi}(z^{(l)}|x) \label{eqnMCVB} \\
+                              &amp;\text{where} \,\,\, z^{(l)} \sim q_{\phi}(z|x) \notag
+\end{aligned} %]]&gt;&lt;/script&gt;
+
+&lt;p&gt;and &lt;script type=&quot;math/tex&quot;&gt;p_{\theta}(x, z) = p(z) p_{\theta}(x|z)&lt;/script&gt;. The derivative with
+respect to &lt;script type=&quot;math/tex&quot;&gt;\theta&lt;/script&gt; is easy to estimate since &lt;script type=&quot;math/tex&quot;&gt;\theta&lt;/script&gt; appears only
+inside the sum.&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;% &lt;![CDATA[
+\begin{aligned}
+    \nabla_{\theta} \mathcal{L}(\theta, \phi) &amp;\approx \frac{1}{L} \sum_{l=1}^{L} \nabla_{\theta} \log p_{\theta}(x, z^{(l)}) \\
+                              &amp;\text{where} \,\,\, z^{(l)} \sim q_{\phi}(z|x) \notag
+\end{aligned} %]]&gt;&lt;/script&gt;
+
+&lt;p&gt;It is the derivative with respect to &lt;script type=&quot;math/tex&quot;&gt;\phi&lt;/script&gt; that is harder to estimate.
+We cannot simply push the gradient operator into the sum since the
+samples used to estimate &lt;script type=&quot;math/tex&quot;&gt;\mathcal{L}&lt;/script&gt; are from &lt;script type=&quot;math/tex&quot;&gt;q_{\phi}(z|x)&lt;/script&gt; which
+depends on &lt;script type=&quot;math/tex&quot;&gt;\phi&lt;/script&gt;. This can be seen by noting that
+&lt;script type=&quot;math/tex&quot;&gt;\nabla_{\phi} \mathbb{E}_{q_{\phi}}[ f(z)] \neq \mathbb{E}_{q_{\phi}}[\nabla_{\phi} f(z)]&lt;/script&gt;,
+where &lt;script type=&quot;math/tex&quot;&gt;f(z)=\log p_{\theta}(x, z^{(l)}) - \log q_{\phi}(z^{(l)}|x)&lt;/script&gt;. The
+standard estimator for the gradient of such expectations is in practice
+too high variance to be useful (See Appendix for further details). One
+key contribution of the variational autoencoder is a much more efficient
+estimate for &lt;script type=&quot;math/tex&quot;&gt;\nabla_{\phi} \mathcal{L}(\theta, \phi)&lt;/script&gt; that relies on
+what is called the &lt;em&gt;reparameterization trick&lt;/em&gt;.&lt;/p&gt;
+
+&lt;h4 id=&quot;reparameterization-trick&quot;&gt;Reparameterization trick&lt;/h4&gt;
+
+&lt;p&gt;We would like to estimate the gradient of an expectation of the form
+&lt;script type=&quot;math/tex&quot;&gt;\mathbb{E}_{q_{\phi}(z|x)}[f(z)]&lt;/script&gt;. The problem is that the gradient
+with respect to &lt;script type=&quot;math/tex&quot;&gt;\phi&lt;/script&gt; is difficult to estimate because &lt;script type=&quot;math/tex&quot;&gt;\phi&lt;/script&gt; appears
+in the distribution with respect to which the expectation is taken. If
+we can somehow rewrite this expectation in such a way that &lt;script type=&quot;math/tex&quot;&gt;\phi&lt;/script&gt;
+appears only inside the expectation, we can simply push the gradient
+operator into the expectation. Assume that we can obtain samples from
+&lt;script type=&quot;math/tex&quot;&gt;q_{\phi}(z|x)&lt;/script&gt; by sampling from a noise distribution &lt;script type=&quot;math/tex&quot;&gt;p(\epsilon)&lt;/script&gt; and
+pushing them through a differentiable transformation
+&lt;script type=&quot;math/tex&quot;&gt;g_{\phi}(\epsilon, x)&lt;/script&gt;&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;z = g_{\phi}(\epsilon, x)\,\, \text{with}\,\, \epsilon \sim p(\epsilon)&lt;/script&gt;
+
+&lt;p&gt;Then we can rewrite the expectation &lt;script type=&quot;math/tex&quot;&gt;\mathbb{E}_{q_{\phi}(z|x)}[f(z)]&lt;/script&gt;
+as follows&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;\begin{aligned}
+    \mathbb{E}_{q_{\phi}(z|x)}[f(z)] = \mathbb{E}_{p(\epsilon)}[f(g_{\phi}(\epsilon, x))]
+\end{aligned}&lt;/script&gt;
+
+&lt;p&gt;Assuming we have a set of samples &lt;script type=&quot;math/tex&quot;&gt;\epsilon^{(l)}, l=1\dots L&lt;/script&gt; from
+&lt;script type=&quot;math/tex&quot;&gt;p(\epsilon)&lt;/script&gt;, we can form a Monte Carlo estimate of
+&lt;script type=&quot;math/tex&quot;&gt;\mathcal{L}(\theta, \phi)&lt;/script&gt; 
+&lt;script type=&quot;math/tex&quot;&gt;% &lt;![CDATA[
+\begin{aligned}
+    \mathcal{L}(\theta, \phi) &amp;\approx \frac{1}{L} \sum_{l=1}^{L} \log p_{\theta}(x, z^{(l)}) - \log q_{\phi}(z^{(l)}|x) \\
+                              &amp;\text{where} \,\,\, z^{(l)} = g_{\phi}(\epsilon^{(l)}, x) \,\,\,\text{and}\,\,\, \epsilon^{(l)} \sim p(\epsilon) \notag
+\end{aligned} %]]&gt;&lt;/script&gt;&lt;/p&gt;
+
+&lt;p&gt;Now &lt;script type=&quot;math/tex&quot;&gt;\phi&lt;/script&gt; appears only inside the sum, and the derivative of
+&lt;script type=&quot;math/tex&quot;&gt;\mathcal{L}&lt;/script&gt; with respect to &lt;script type=&quot;math/tex&quot;&gt;\phi&lt;/script&gt; can be estimated in the same way we
+did for &lt;script type=&quot;math/tex&quot;&gt;\theta&lt;/script&gt;. This in essence is the reparameterization trick and
+reduces the variance in the estimates of
+&lt;script type=&quot;math/tex&quot;&gt;\nabla_{\phi} \mathcal{L}(\theta, \phi)&lt;/script&gt; dramatically, making it
+feasible to train large latent variable models. We can find an
+appropriate noise distribution &lt;script type=&quot;math/tex&quot;&gt;p(\epsilon)&lt;/script&gt; and a differentiable
+transformation &lt;script type=&quot;math/tex&quot;&gt;g_{\phi}&lt;/script&gt; for many choices of approximate posterior
+&lt;script type=&quot;math/tex&quot;&gt;q_{\phi}(z|x)&lt;/script&gt; (see the original paper&lt;sup id=&quot;fnref:1:1&quot;&gt;&lt;a href=&quot;#fn:1&quot; class=&quot;footnote&quot;&gt;1&lt;/a&gt;&lt;/sup&gt; for
+several strategies). We will see an example for the multivariate
+Gaussian distribution below when we talk about the variational
+autoencoder.&lt;/p&gt;
+
+&lt;h4 id=&quot;variational-autoencoder-va&quot;&gt;Variational Autoencoder (VA)&lt;/h4&gt;
+
+&lt;p&gt;The above discussion of latent variable models is general, and the
+variational approach outlined above can be applied to any latent
+variable model. We can think of the variational autoencoder as a latent
+variable model that uses neural networks (specifically multilayer
+perceptrons) to model the approximate posterior &lt;script type=&quot;math/tex&quot;&gt;q_{\phi}(z|x)&lt;/script&gt; and the
+generative model &lt;script type=&quot;math/tex&quot;&gt;p_{\theta}(x, z)&lt;/script&gt;. More specifically, we assume that
+the approximate posterior is a multivariate Gaussian with a diagonal
+covariance matrix. The parameters of this Gaussian distribution are
+calculated by a multilayer perceptron (MLP) that takes &lt;script type=&quot;math/tex&quot;&gt;x&lt;/script&gt; as input. We
+denote this MLP with two nonlinear functions &lt;script type=&quot;math/tex&quot;&gt;\mu_{\phi}&lt;/script&gt; and
+&lt;script type=&quot;math/tex&quot;&gt;\sigma_{\phi}&lt;/script&gt; that map from &lt;script type=&quot;math/tex&quot;&gt;x&lt;/script&gt; to the mean and standard deviation
+vectors respectively.&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;q_{\phi}(z|x) = \mathcal{N}(z; \mu_{\phi}(x), \sigma_{\phi}(x) \mathbf{I})&lt;/script&gt;
+
+&lt;p&gt;For the generative model &lt;script type=&quot;math/tex&quot;&gt;p_{\theta}(x, z)&lt;/script&gt;, we assume &lt;script type=&quot;math/tex&quot;&gt;p(z)&lt;/script&gt; is fixed
+to a unit multivariate Gaussian, i.e.,
+&lt;script type=&quot;math/tex&quot;&gt;p(z) = \mathcal{N}(0, \mathbf{I})&lt;/script&gt;. The form of &lt;script type=&quot;math/tex&quot;&gt;p_{\theta}(x|z)&lt;/script&gt;
+depends on the nature of the data being modeled. For example, for real
+&lt;script type=&quot;math/tex&quot;&gt;x&lt;/script&gt;, we can use a multivariate Gaussian, or for binary &lt;script type=&quot;math/tex&quot;&gt;x&lt;/script&gt;, we can use a
+Bernoulli distribution. Here, let us assume that &lt;script type=&quot;math/tex&quot;&gt;x&lt;/script&gt; is real and
+&lt;script type=&quot;math/tex&quot;&gt;p_{\theta}(x|z)&lt;/script&gt; is Gaussian. Again, we assume the parameters of
+&lt;script type=&quot;math/tex&quot;&gt;p_{\theta}(x|z)&lt;/script&gt; are calculated by a MLP. However, note that this time
+the input to the MLP are &lt;script type=&quot;math/tex&quot;&gt;z&lt;/script&gt;, not &lt;script type=&quot;math/tex&quot;&gt;x&lt;/script&gt;. Denoting this MLP with two
+nonlinear functions &lt;script type=&quot;math/tex&quot;&gt;\mu_{\theta}&lt;/script&gt; and &lt;script type=&quot;math/tex&quot;&gt;\sigma_{\theta}&lt;/script&gt; that map from
+&lt;script type=&quot;math/tex&quot;&gt;z&lt;/script&gt; to the mean and standard deviation vectors respectively, we have&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;p_{\theta}(x|z) = \mathcal{N}(x; \mu_{\theta}(z), \sigma_{\theta}(z) \mathbf{I})&lt;/script&gt;
+
+&lt;p&gt;Looking at the network architecture of this model, we can see why it is
+called an autoencoder.&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;x \xrightarrow{q_{\phi}(z|x)} z \xrightarrow{p_{\theta}(x|z)} x&lt;/script&gt;
+
+&lt;p&gt;The input &lt;script type=&quot;math/tex&quot;&gt;x&lt;/script&gt; is mapped probabilistically to a code &lt;script type=&quot;math/tex&quot;&gt;z&lt;/script&gt; by the encoder
+&lt;script type=&quot;math/tex&quot;&gt;q_{\phi}&lt;/script&gt;, which in turn is mapped probabilistically back to the input
+space by the decoder &lt;script type=&quot;math/tex&quot;&gt;p_{\theta}&lt;/script&gt;.&lt;/p&gt;
+
+&lt;p&gt;In order to learn &lt;script type=&quot;math/tex&quot;&gt;\theta&lt;/script&gt; and &lt;script type=&quot;math/tex&quot;&gt;\phi&lt;/script&gt;, the variational autoencoder uses
+the variational approach outlined above. We sample &lt;script type=&quot;math/tex&quot;&gt;z^{(l)}, l=1\dots L&lt;/script&gt;
+from &lt;script type=&quot;math/tex&quot;&gt;q_{\phi}(z|x)&lt;/script&gt; and use these to obtain a Monte Carlo estimate of
+the variational lower bound &lt;script type=&quot;math/tex&quot;&gt;\mathcal{L}(\theta, \phi)&lt;/script&gt;. Then we take the 
+derivative of this bound with respect
+to the parameters and use these in a stochastic gradient ascent
+procedure to learn &lt;script type=&quot;math/tex&quot;&gt;\theta&lt;/script&gt; and &lt;script type=&quot;math/tex&quot;&gt;\phi&lt;/script&gt;. As we discussed above, in order
+to reduce the variance of our gradient estimates, we apply the
+reparameterization trick. We would like to reparameterize the
+multivariate Gaussian distribution &lt;script type=&quot;math/tex&quot;&gt;q_{\phi}(z|x)&lt;/script&gt; using a noise
+distribution &lt;script type=&quot;math/tex&quot;&gt;p(\epsilon)&lt;/script&gt; and a differentiable transformation
+&lt;script type=&quot;math/tex&quot;&gt;g_{\phi}&lt;/script&gt;. We assume &lt;script type=&quot;math/tex&quot;&gt;\epsilon&lt;/script&gt; are sampled from a multivariate unit
+Gaussian, i.e., &lt;script type=&quot;math/tex&quot;&gt;p(\epsilon) \sim \mathcal{N}(0, \mathbf{I})&lt;/script&gt;. Then if
+we let
+&lt;script type=&quot;math/tex&quot;&gt;z = g_{\phi}(\epsilon, x) = \mu_{\phi}(x) + \epsilon \odot \sigma_{\phi}(x)&lt;/script&gt;,
+&lt;script type=&quot;math/tex&quot;&gt;z&lt;/script&gt; will have the desired distribution
+&lt;script type=&quot;math/tex&quot;&gt;q_{\phi}(z|x) \sim \mathcal{N}(z; \mu_{\phi}(x), \sigma_{\phi}(x))&lt;/script&gt;
+(&lt;script type=&quot;math/tex&quot;&gt;\odot&lt;/script&gt; denotes elementwise multiplication). Therefore, we can rewrite
+the variational lower bound using this reparameterization for &lt;script type=&quot;math/tex&quot;&gt;q_{\phi}&lt;/script&gt;
+as follows&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;% &lt;![CDATA[
+\begin{aligned}
+    \mathcal{L}(\theta, \phi) &amp;\approx \frac{1}{L} \sum_{l=1}^{L} \log p_{\theta}(x, z^{(l)}) - \log q_{\phi}(z^{(l)}|x) \\
+                              &amp;\text{where} \,\,\, z^{(l)} = \mu_{\phi}(x) + \epsilon \odot \sigma_{\phi}(x) \,\,\,\text{and}\,\,\, \epsilon^{(l)} \sim \mathcal{N}(\epsilon; 0, \mathbf{I}) \notag
+\end{aligned} %]]&gt;&lt;/script&gt;
+
+&lt;p&gt;There is one more simplification we can make. Writing &lt;script type=&quot;math/tex&quot;&gt;p_{\theta}(x,z)&lt;/script&gt;
+explicitly as &lt;script type=&quot;math/tex&quot;&gt;p(z) p_{\theta}(x|z)&lt;/script&gt;, we see&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;% &lt;![CDATA[
+\begin{aligned}
+    \mathcal{L}(\theta, \phi) &amp;= \mathbb{E}_{q}\left[\log \frac{p(z) p_{\theta}(x|z)}{q_{\phi}(z|x)}\right] \\
+                              &amp;= \mathbb{E}_{q}\left[\log \frac{p(z) }{q_{\phi}(z|x)}\right] + \mathbb{E}_{q}\left[p_{\theta}(x|z)\right] \\
+                              &amp;= -\text{KL}(q_{\phi}(z|x)||p(z)) + \mathbb{E}_{q}\left[p_{\theta}(x|z)\right] \\
+\end{aligned} %]]&gt;&lt;/script&gt;
+
+&lt;p&gt;Since both &lt;script type=&quot;math/tex&quot;&gt;p(z)&lt;/script&gt; and &lt;script type=&quot;math/tex&quot;&gt;q_{\phi}(z|x)&lt;/script&gt; are Gaussian, the KL term has a
+closed form expression. Plugging that in, we get the following
+expression for the variational lower bound.&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;% &lt;![CDATA[
+\begin{aligned}
+    \mathcal{L}(\theta, \phi) &amp;\approx \frac{1}{2} \sum_{d=1}^{D} \left(1 + \log(\sigma_{\phi,d}^2(x)) - \mu_{\phi, d}^2(x) - \sigma_{\phi, d}^2(x) \right) + \frac{1}{L} \sum_{l=1}^{L} \log p_{\theta}(x|z^{(l)}) \label{eqnVAVB} \\
+                              &amp;\text{where} \,\,\, z^{(l)} = \mu_{\phi}(x) + \epsilon \odot \sigma_{\phi}(x) \,\,\,\text{and}\,\,\, \epsilon^{(l)} \sim \mathcal{N}(\epsilon; 0, \mathbf{I}) \notag
+\end{aligned} %]]&gt;&lt;/script&gt;
+
+&lt;p&gt;Here we assumed that &lt;script type=&quot;math/tex&quot;&gt;z&lt;/script&gt; has &lt;script type=&quot;math/tex&quot;&gt;D&lt;/script&gt; dimensions and used &lt;script type=&quot;math/tex&quot;&gt;\mu_{\phi,d}&lt;/script&gt; and
+&lt;script type=&quot;math/tex&quot;&gt;\sigma_{\phi,d}&lt;/script&gt; to denote the &lt;script type=&quot;math/tex&quot;&gt;d&lt;/script&gt;th dimension of the mean and standard
+deviation vectors for &lt;script type=&quot;math/tex&quot;&gt;z&lt;/script&gt;. So far we have looked at a single data point
+&lt;script type=&quot;math/tex&quot;&gt;x&lt;/script&gt;. Now, assume that we have a dataset with &lt;script type=&quot;math/tex&quot;&gt;N&lt;/script&gt; datapoints and draw a
+random sample of &lt;script type=&quot;math/tex&quot;&gt;M&lt;/script&gt; datapoints. The variational lower bound estimate
+for the minibatch &lt;script type=&quot;math/tex&quot;&gt;\{x^{i}\}, i=1\dots M&lt;/script&gt; is simply the average of
+&lt;script type=&quot;math/tex&quot;&gt;\mathcal{L}(\theta, \phi)&lt;/script&gt; values for each &lt;script type=&quot;math/tex&quot;&gt;x^{(i)}&lt;/script&gt;&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;\begin{aligned}
+    \mathcal{L}(\theta, \phi; \{x^{i}\}_{i=1}^{M}) \approx \frac{N}{M} \sum_{i=1}^{M} \mathcal{L}(\theta, \phi; x^{(i)})
+    \label{eqnVAVBMinibatch}
+\end{aligned}&lt;/script&gt;
+
+&lt;p&gt;where &lt;script type=&quot;math/tex&quot;&gt;\mathcal{L}(\theta, \phi; x^{(i)})&lt;/script&gt; is given above. In
+order to learn &lt;script type=&quot;math/tex&quot;&gt;\theta&lt;/script&gt; and &lt;script type=&quot;math/tex&quot;&gt;\phi&lt;/script&gt;, we can take the derivative of the
+above expression and use these in a stochastic gradient-ascent
+procedure.&lt;/p&gt;
+
+&lt;h4 id=&quot;an-example-application&quot;&gt;An example application&lt;/h4&gt;
+
+&lt;p&gt;As an example application, we train a variational autoencoder on the
+handwritten digits dataset MNIST. We use multilayer perceptrons with one
+hidden layer with 500 units for both the encoder (&lt;script type=&quot;math/tex&quot;&gt;q_{\phi}&lt;/script&gt;) and
+decoder (&lt;script type=&quot;math/tex&quot;&gt;p_{\theta}&lt;/script&gt;) networks. Because we are interested in
+visualizing the latent space, we set the number of latent dimensions to 2. 
+We use 1 sample per datapoint (&lt;script type=&quot;math/tex&quot;&gt;L=1&lt;/script&gt;) and 100 datapoints per
+minibatch (&lt;script type=&quot;math/tex&quot;&gt;M=100&lt;/script&gt;). We use stochastic gradient-ascent with a learning
+rate of 0.001 and train for 500 epochs (i.e., 500 passes over the whole
+dataset). The implementation can be seen online at
+&lt;a href=&quot;https://github.com/gokererdogan/DeepLearning/tree/master/variational_autoencoder&quot;&gt;https://github.com/gokererdogan/DeepLearning/tree/master/variational_autoencoder&lt;/a&gt;.
+We provide two implementations, one in pure &lt;code class=&quot;highlighter-rouge&quot;&gt;theano&lt;/code&gt; and one in
+&lt;code class=&quot;highlighter-rouge&quot;&gt;lasagne&lt;/code&gt;. We plot the latent space by varying the latent &lt;script type=&quot;math/tex&quot;&gt;z&lt;/script&gt; along each of 
+the two dimensions and sampling from the learned generative model. We see that 
+the model is able to capture some interesting structure in the set of handwritten 
+digits (compare to Fig4b in the original paper&lt;sup id=&quot;fnref:1:2&quot;&gt;&lt;a href=&quot;#fn:1&quot; class=&quot;footnote&quot;&gt;1&lt;/a&gt;&lt;/sup&gt;).&lt;/p&gt;
+
+&lt;p style=&quot;margin-left: auto; margin-right: auto; text-align: center;&quot;&gt;&lt;img src=&quot;/img/VariationalAutoencoder4b.png&quot; alt=&quot;An illustration of the learned latent space for MNIST dataset)&quot; width=&quot;400px&quot; /&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;appendix&quot;&gt;Appendix&lt;/h3&gt;
+
+&lt;h4 id=&quot;estimating-nabla_phi-mathbbe_q_phifz&quot;&gt;Estimating &lt;script type=&quot;math/tex&quot;&gt;\nabla_{\phi} \mathbb{E}_{q_{\phi}}[f(z)]&lt;/script&gt;&lt;/h4&gt;
+
+&lt;p&gt;One common approach to estimating the gradient of such expectations is
+to make use of the identity
+&lt;script type=&quot;math/tex&quot;&gt;\nabla_{\phi}q_{\phi} = q_{\phi} \nabla_{\phi} \log q_{\phi}&lt;/script&gt;&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;% &lt;![CDATA[
+\begin{aligned}
+    \nabla_{\phi}\mathbb{E}_{q_{\phi}}[f(z)] &amp;= \nabla_{\phi} \int_z q_{\phi}(z|x)f(z) \\
+                                             &amp;= \int_z \nabla_{\phi} q_{\phi}(z|x) f(z) \\
+                                             &amp;= \int_z q_{\phi}(z|x) \nabla_{\phi} \log q(z|x) f(z) \\
+                                             &amp;= \mathbb{E}_{q_{\phi}}[f(z) \nabla_{\phi} \log q(z|x)] \\
+\end{aligned} %]]&gt;&lt;/script&gt;
+
+&lt;p&gt;This estimator is known by various names in the literature from the
+&lt;em&gt;REINFORCE algorithm&lt;/em&gt; to &lt;em&gt;score function estimator&lt;/em&gt; or &lt;em&gt;likelihood ratio
+trick&lt;/em&gt;. Given samples &lt;script type=&quot;math/tex&quot;&gt;z^{(l)}, l=1\dots L&lt;/script&gt; from &lt;script type=&quot;math/tex&quot;&gt;q_{\phi}(z|x)&lt;/script&gt;, we can
+form an unbiased Monte Carlo estimate of the gradient of
+&lt;script type=&quot;math/tex&quot;&gt;\mathcal{L}(\theta, \phi)&lt;/script&gt; with respect to &lt;script type=&quot;math/tex&quot;&gt;\phi&lt;/script&gt; using this estimator.
+However, in practice it exhibits too high variance to be useful.&lt;/p&gt;
+
+&lt;h4 id=&quot;bibliography&quot;&gt;Bibliography&lt;/h4&gt;
+&lt;div class=&quot;footnotes&quot;&gt;
+  &lt;ol&gt;
+    &lt;li id=&quot;fn:1&quot;&gt;
+      &lt;p&gt;Kingma, D. P., &amp;amp; Welling, M. (2014). Auto-Encoding Variational Bayes. arXiv:1312.6114&amp;nbsp;&lt;a href=&quot;#fnref:1&quot; class=&quot;reversefootnote&quot;&gt;&amp;#8617;&lt;/a&gt;&amp;nbsp;&lt;a href=&quot;#fnref:1:1&quot; class=&quot;reversefootnote&quot;&gt;&amp;#8617;&lt;sup&gt;2&lt;/sup&gt;&lt;/a&gt;&amp;nbsp;&lt;a href=&quot;#fnref:1:2&quot; class=&quot;reversefootnote&quot;&gt;&amp;#8617;&lt;sup&gt;3&lt;/sup&gt;&lt;/a&gt;&lt;/p&gt;
+    &lt;/li&gt;
+  &lt;/ol&gt;
+&lt;/div&gt;
+</description>
+        <pubDate>Tue, 15 Aug 2017 15:00:00 +0300</pubDate>
+        <link>http://gokererdogan.github.io/2017/08/15/variational-autoencoder-explained/</link>
+        <guid isPermaLink="true">http://gokererdogan.github.io/2017/08/15/variational-autoencoder-explained/</guid>
+        
+        <category>variational methods</category>
+        
+        <category>unsupervised learning</category>
+        
+        <category>python</category>
+        
+        <category>autoencoder</category>
+        
+        
+        <category>Machine Learning</category>
+        
+        <category>Optimization</category>
+        
+      </item>
     
       <item>
         <title>Reparameterization Trick</title>
@@ -117,15 +505,15 @@
 &lt;div class=&quot;footnotes&quot;&gt;
   &lt;ol&gt;
     &lt;li id=&quot;fn:1&quot;&gt;
-      &lt;p&gt;Kingma, D. P., &amp;amp; Welling, M. (2014). Auto-Encoding Variational Bayes. arXiv:1312.6114 &lt;a href=&quot;#fnref:1&quot; class=&quot;reversefootnote&quot;&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+      &lt;p&gt;Kingma, D. P., &amp;amp; Welling, M. (2014). Auto-Encoding Variational Bayes. arXiv:1312.6114&amp;nbsp;&lt;a href=&quot;#fnref:1&quot; class=&quot;reversefootnote&quot;&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
     &lt;/li&gt;
     &lt;li id=&quot;fn:2&quot;&gt;
-      &lt;p&gt;Williams, R. J. (1992). Simple Statistical Gradient-following Algorithms for Connectionist Reinforcement Learning. Machine Learning, 8(3–4), 229–256. &lt;a href=&quot;#fnref:2&quot; class=&quot;reversefootnote&quot;&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+      &lt;p&gt;Williams, R. J. (1992). Simple Statistical Gradient-following Algorithms for Connectionist Reinforcement Learning. Machine Learning, 8(3–4), 229–256.&amp;nbsp;&lt;a href=&quot;#fnref:2&quot; class=&quot;reversefootnote&quot;&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
     &lt;/li&gt;
   &lt;/ol&gt;
 &lt;/div&gt;
 </description>
-        <pubDate>Fri, 01 Jul 2016 08:00:00 -0400</pubDate>
+        <pubDate>Fri, 01 Jul 2016 15:00:00 +0300</pubDate>
         <link>http://gokererdogan.github.io/2016/07/01/reparameterization-trick/</link>
         <guid isPermaLink="true">http://gokererdogan.github.io/2016/07/01/reparameterization-trick/</guid>
         
@@ -195,21 +583,21 @@ https://github.com/gokererdogan
     &lt;span class=&quot;n&quot;&gt;latent_dim&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;  &lt;span class=&quot;c&quot;&gt;# pairs of mu and sigma&lt;/span&gt;
 
     &lt;span class=&quot;c&quot;&gt;# input to the network&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;T&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fmatrix&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;x&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;T&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fmatrix&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'x'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
 
     &lt;span class=&quot;c&quot;&gt;# Encoder network hidden layer&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;w1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;theano&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shared&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;init_weight&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;input_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;encoder_hidden_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;w1&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;b1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;theano&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shared&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;init_bias&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;encoder_hidden_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;b1&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;w1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;theano&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shared&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;init_weight&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;input_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;encoder_hidden_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'w1'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;b1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;theano&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shared&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;init_bias&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;encoder_hidden_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'b1'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;h1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;T&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;tanh&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;T&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;w1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
 
     &lt;span class=&quot;c&quot;&gt;# Encoder network outputs: means and standard deviations of the Gaussian distribution &lt;/span&gt;
     &lt;span class=&quot;c&quot;&gt;# p(z|mu, sigma)&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;w_mu&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;theano&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shared&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;init_weight&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;encoder_hidden_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;latent_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;w_mu&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;b_mu&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;theano&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shared&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;init_bias&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;latent_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;b_mu&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;w_mu&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;theano&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shared&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;init_weight&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;encoder_hidden_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;latent_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'w_mu'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;b_mu&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;theano&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shared&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;init_bias&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;latent_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'b_mu'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;mu&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;T&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;h1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;w_mu&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b_mu&lt;/span&gt;
 
-    &lt;span class=&quot;n&quot;&gt;w_sigma&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;theano&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shared&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;init_weight&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;encoder_hidden_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;latent_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;w_sigma&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;b_sigma&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;theano&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shared&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;init_bias&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;latent_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;b_sigma&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;w_sigma&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;theano&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shared&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;init_weight&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;encoder_hidden_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;latent_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'w_sigma'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;b_sigma&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;theano&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shared&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;init_bias&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;latent_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'b_sigma'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;sigma&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;T&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;h1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;w_sigma&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b_sigma&lt;/span&gt;
 
     &lt;span class=&quot;c&quot;&gt;# Latent variables&lt;/span&gt;
@@ -218,13 +606,13 @@ https://github.com/gokererdogan
     &lt;span class=&quot;n&quot;&gt;z&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;mu&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;eps&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;T&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;exp&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sigma&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;  &lt;span class=&quot;c&quot;&gt;# calculate latent variables&lt;/span&gt;
 
     &lt;span class=&quot;c&quot;&gt;# Decoder network hidden layer&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;w2&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;theano&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shared&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;init_weight&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;latent_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;decoder_hidden_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;w2&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;b2&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;theano&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shared&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;init_bias&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;decoder_hidden_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;b2&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;w2&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;theano&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shared&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;init_weight&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;latent_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;decoder_hidden_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'w2'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;b2&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;theano&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shared&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;init_bias&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;decoder_hidden_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'b2'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;h2&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;T&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;tanh&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;T&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;z&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;w2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
 
     &lt;span class=&quot;c&quot;&gt;# Decoder network output&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;w3&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;theano&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shared&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;init_weight&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;decoder_hidden_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;input_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;w3&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;b3&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;theano&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shared&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;init_bias&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;input_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;b3&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;w3&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;theano&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shared&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;init_weight&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;decoder_hidden_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;input_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'w3'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;b3&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;theano&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shared&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;init_bias&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;input_dim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'b3'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;y&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;T&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;nnet&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sigmoid&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;T&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;h2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;w3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;b3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
 
     &lt;span class=&quot;c&quot;&gt;# LOSS FUNCTION&lt;/span&gt;
@@ -275,7 +663,7 @@ https://github.com/gokererdogan
     &lt;span class=&quot;n&quot;&gt;report_interval&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;20000&lt;/span&gt;
 
     &lt;span class=&quot;c&quot;&gt;# load the training data&lt;/span&gt;
-    &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;tx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ty&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;vx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;vy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;_&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;load_mnist&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;path&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;../datasets&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;tx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ty&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;vx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;vy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;_&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;load_mnist&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;path&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'../datasets'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;train_n&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;tx&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shape&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;val_n&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;vx&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shape&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
     &lt;span class=&quot;c&quot;&gt;# we load the data into shared variables, this is recommended if you do training on GPU.&lt;/span&gt;
@@ -364,24 +752,24 @@ https://github.com/gokererdogan
 
         &lt;span class=&quot;s&quot;&gt;&quot;&quot;&quot;
         import matplotlib.pyplot as plt
-        plt.style.use(&#39;classic&#39;)
-        plt.imshow(img, cmap=&#39;gray&#39;)
+        plt.style.use('classic')
+        plt.imshow(img, cmap='gray')
         &quot;&quot;&quot;&lt;/span&gt;
 
         &lt;span class=&quot;kn&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;scipy&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;misc&lt;/span&gt;
-        &lt;span class=&quot;n&quot;&gt;misc&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;imsave&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;Fig4b.png&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;img&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+        &lt;span class=&quot;n&quot;&gt;misc&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;imsave&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'Fig4b.png'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;img&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
 &lt;h4 id=&quot;bibliography&quot;&gt;Bibliography&lt;/h4&gt;
 
 &lt;div class=&quot;footnotes&quot;&gt;
   &lt;ol&gt;
     &lt;li id=&quot;fn:1&quot;&gt;
-      &lt;p&gt;Kingma, D. P., &amp;amp; Welling, M. (2014). Auto-Encoding Variational Bayes. arXiv:1312.6114 &lt;a href=&quot;#fnref:1&quot; class=&quot;reversefootnote&quot;&gt;&amp;#8617;&lt;/a&gt; &lt;a href=&quot;#fnref:1:1&quot; class=&quot;reversefootnote&quot;&gt;&amp;#8617;&lt;sup&gt;2&lt;/sup&gt;&lt;/a&gt;&lt;/p&gt;
+      &lt;p&gt;Kingma, D. P., &amp;amp; Welling, M. (2014). Auto-Encoding Variational Bayes. arXiv:1312.6114&amp;nbsp;&lt;a href=&quot;#fnref:1&quot; class=&quot;reversefootnote&quot;&gt;&amp;#8617;&lt;/a&gt;&amp;nbsp;&lt;a href=&quot;#fnref:1:1&quot; class=&quot;reversefootnote&quot;&gt;&amp;#8617;&lt;sup&gt;2&lt;/sup&gt;&lt;/a&gt;&lt;/p&gt;
     &lt;/li&gt;
   &lt;/ol&gt;
 &lt;/div&gt;
 </description>
-        <pubDate>Fri, 03 Jun 2016 08:00:00 -0400</pubDate>
+        <pubDate>Fri, 03 Jun 2016 15:00:00 +0300</pubDate>
         <link>http://gokererdogan.github.io/2016/06/03/variational-autoencoder/</link>
         <guid isPermaLink="true">http://gokererdogan.github.io/2016/06/03/variational-autoencoder/</guid>
         
@@ -408,15 +796,15 @@ https://github.com/gokererdogan
         <title>Multiple Kernel Learning for Extracting Protein-protein Interactions</title>
         <description>&lt;p&gt;For this semester’s Bioinformatics course, I have applied various multiple kernel learning algorithms on extraction of protein-protein interactions from biomedical literature. Below is a more formal presentation of the project and you can also reach the report.&lt;/p&gt;
 
-&lt;blockquote&gt;Determining if a protein interacts with another protein is quite important as it provides important clues in many research areas such as development of new drugs. One approach to PPI extraction relies on machine learning and natural language processing methods to learn models discriminating between positive and negative interactions based on linguistic features of sentences. In this project, we apply multiple kernel learning algorithms (rule based, alignment based and mkl by Bach et al.) on 3 kernels (shallow linguistic, subtree, k-BSPS) that use different linguistic features and analyze the results from accuracy and kernels&#39; importance perspective.	
+&lt;blockquote&gt;Determining if a protein interacts with another protein is quite important as it provides important clues in many research areas such as development of new drugs. One approach to PPI extraction relies on machine learning and natural language processing methods to learn models discriminating between positive and negative interactions based on linguistic features of sentences. In this project, we apply multiple kernel learning algorithms (rule based, alignment based and mkl by Bach et al.) on 3 kernels (shallow linguistic, subtree, k-BSPS) that use different linguistic features and analyze the results from accuracy and kernels' importance perspective.	
 &lt;/blockquote&gt;
 
 &lt;p&gt;&lt;a href=&quot;/files/cmpe59hreport_2010700222.pdf&quot;&gt;Report&lt;/a&gt;&lt;br /&gt;
 Source code is available on request due to its large size.&lt;/p&gt;
 </description>
-        <pubDate>Mon, 23 Jan 2012 18:44:20 -0500</pubDate>
-        <link>http://gokererdogan.github.io/2012/01/23/multiple-kernel-learning-for-extracting-protein-protein-interactions/</link>
-        <guid isPermaLink="true">http://gokererdogan.github.io/2012/01/23/multiple-kernel-learning-for-extracting-protein-protein-interactions/</guid>
+        <pubDate>Tue, 24 Jan 2012 01:44:20 +0200</pubDate>
+        <link>http://gokererdogan.github.io/2012/01/24/multiple-kernel-learning-for-extracting-protein-protein-interactions/</link>
+        <guid isPermaLink="true">http://gokererdogan.github.io/2012/01/24/multiple-kernel-learning-for-extracting-protein-protein-interactions/</guid>
         
         <category>bioinformatics</category>
         
@@ -469,7 +857,7 @@ You can see the code &lt;a href=&quot;https://github.com/gokererdogan/OutlierDet
 
 &lt;p&gt;Here is a &lt;a href=&quot;/files/Erdogan_2012_MScThesis.pdf&quot;&gt;link&lt;/a&gt; to my thesis if anyone is interested.&lt;/p&gt;
 </description>
-        <pubDate>Fri, 30 Dec 2011 11:04:29 -0500</pubDate>
+        <pubDate>Fri, 30 Dec 2011 18:04:29 +0200</pubDate>
         <link>http://gokererdogan.github.io/2011/12/30/outlier-detection-toolbox-in-matlab/</link>
         <guid isPermaLink="true">http://gokererdogan.github.io/2011/12/30/outlier-detection-toolbox-in-matlab/</guid>
         
@@ -670,7 +1058,7 @@ Below you can see sample code to initialize, train and test MoE model with synth
 
 &lt;p&gt;You can find data structures and functions for MoE model, synthetic classification dataset and sample code given above in the source code which you can download &lt;a href=&quot;/files/MoE_C.rar&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
 </description>
-        <pubDate>Mon, 04 Jul 2011 13:42:58 -0400</pubDate>
+        <pubDate>Mon, 04 Jul 2011 20:42:58 +0300</pubDate>
         <link>http://gokererdogan.github.io/2011/07/04/mixture-of-experts-c-implementation-and-sparse-input-data/</link>
         <guid isPermaLink="true">http://gokererdogan.github.io/2011/07/04/mixture-of-experts-c-implementation-and-sparse-input-data/</guid>
         
@@ -741,11 +1129,11 @@ For regression, &lt;script type=&quot;math/tex&quot;&gt;f_h = \frac{ g_h exp ( 0
 2
 3
 4
-5&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;v&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;TrainMixtureOfExperts&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;regression&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&#39;competitive&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;tx2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;tr2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;100&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mf&quot;&gt;0.5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mf&quot;&gt;0.99&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;err&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;TestMixtureOfExperts&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;regression&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;vx2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;vr2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;v&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;vx2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&#39;xr&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+5&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;v&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;TrainMixtureOfExperts&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'regression'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'competitive'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;tx2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;tr2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;100&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mf&quot;&gt;0.5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mf&quot;&gt;0.99&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;err&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;TestMixtureOfExperts&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'regression'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;vx2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;vr2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;v&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;m&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;vx2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'xr'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
 &lt;span class=&quot;nb&quot;&gt;hold&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;on&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;vx2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;vr2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&#39;ob&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;vx2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;vr2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'ob'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
 &lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
 &lt;p&gt;It can also be seen in the below plot that MoE model learns the underlying model that generates quite successfully by analyzing the predicted outputs on given outputs visually.&lt;/p&gt;
@@ -755,9 +1143,9 @@ For regression, &lt;script type=&quot;math/tex&quot;&gt;f_h = \frac{ g_h exp ( 0
 &lt;p&gt;All source code; MoE functions and synthetic data generation routines can be downloaded from &lt;a href=&quot;/files/MoE.rar&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
 
 </description>
-        <pubDate>Fri, 01 Jul 2011 18:38:37 -0400</pubDate>
-        <link>http://gokererdogan.github.io/2011/07/01/mixture-of-experts/</link>
-        <guid isPermaLink="true">http://gokererdogan.github.io/2011/07/01/mixture-of-experts/</guid>
+        <pubDate>Sat, 02 Jul 2011 01:38:37 +0300</pubDate>
+        <link>http://gokererdogan.github.io/2011/07/02/mixture-of-experts/</link>
+        <guid isPermaLink="true">http://gokererdogan.github.io/2011/07/02/mixture-of-experts/</guid>
         
         <category>gradient ascent</category>
         
@@ -825,7 +1213,7 @@ I have added the following search methods to the Search module I have implemente
 &lt;p&gt;&lt;a href=&quot;/img/8puzzle.png&quot;&gt;&lt;img src=&quot;/img/8puzzle.png&quot; alt=&quot;fig8PuzzleGUI&quot; /&gt;&lt;/a&gt;&lt;/p&gt;
 
 &lt;p&gt;Note that some of the randomly generated puzzled are inherently hard and can take a long time to solve it. But worse is that some of the puzzles cannot be solved at all but program will try to find a solution and will probably crash. Take a look at the article on &lt;a href=&quot;http://en.wikipedia.org/wiki/N-puzzle&quot;&gt;N-Puzzle in Wikipedia&lt;/a&gt; for a detailed analysis of this puzzle.
-The other search problem you can find in source code is yet another famous problem, &lt;a href=&quot;http://en.wikipedia.org/wiki/Travelling_salesman_problem&quot;&gt;Traveling Salesman Problem (TSP)&lt;/a&gt;. I have implemented &lt;a href=&quot;http://en.wikipedia.org/wiki/Minimum_spanning_tree&quot;&gt;minimum spanning tree&lt;/a&gt; construction with &lt;a href=&quot;http://en.wikipedia.org/wiki/Prim&#39;s_algorithm&quot;&gt;Prim’s algorithm&lt;/a&gt; and used the total cost of tree as a heuristic value for TSP. Below you can see the sample code and screenshot.&lt;/p&gt;
+The other search problem you can find in source code is yet another famous problem, &lt;a href=&quot;http://en.wikipedia.org/wiki/Travelling_salesman_problem&quot;&gt;Traveling Salesman Problem (TSP)&lt;/a&gt;. I have implemented &lt;a href=&quot;http://en.wikipedia.org/wiki/Minimum_spanning_tree&quot;&gt;minimum spanning tree&lt;/a&gt; construction with &lt;a href=&quot;http://en.wikipedia.org/wiki/Prim's_algorithm&quot;&gt;Prim’s algorithm&lt;/a&gt; and used the total cost of tree as a heuristic value for TSP. Below you can see the sample code and screenshot.&lt;/p&gt;
 
 &lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;table style=&quot;border-spacing: 0&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class=&quot;gutter gl&quot; style=&quot;text-align: right&quot;&gt;&lt;pre class=&quot;lineno&quot;&gt;1
 2
@@ -849,7 +1237,7 @@ I’d be happy to hear your questions, comments &amp;amp; suggestions.&lt;br /&g
 Source Code &lt;a href=&quot;/files/AIAMA_C4.zip&quot;&gt;Download&lt;/a&gt;&lt;/p&gt;
 
 </description>
-        <pubDate>Fri, 11 Feb 2011 08:14:36 -0500</pubDate>
+        <pubDate>Fri, 11 Feb 2011 15:14:36 +0200</pubDate>
         <link>http://gokererdogan.github.io/2011/02/11/informed-search-methods/</link>
         <guid isPermaLink="true">http://gokererdogan.github.io/2011/02/11/informed-search-methods/</guid>
         
@@ -1060,7 +1448,7 @@ State: 0M 0C |-B| 3M 3C, Depth: 11, Path Cost: 11, Applied Operator: Move 1 M 1 
     &lt;span class=&quot;c&quot;&gt;# for every unassigned variable, construct a list of values to be removed&lt;/span&gt;
     &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;v&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;unassignedVars&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
         &lt;span class=&quot;n&quot;&gt;vals&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[]&lt;/span&gt;
-        &lt;span class=&quot;c&quot;&gt;# two queens can&#39;t be on same column&lt;/span&gt;
+        &lt;span class=&quot;c&quot;&gt;# two queens can't be on same column&lt;/span&gt;
         &lt;span class=&quot;n&quot;&gt;vals&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;append&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;val&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
         &lt;span class=&quot;c&quot;&gt;# add diagonal positions if they are inside boundaries of chess board&lt;/span&gt;
         &lt;span class=&quot;n&quot;&gt;rowDiff&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;ord&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;v&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;ord&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;state&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;nextVariable&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
@@ -1071,8 +1459,8 @@ State: 0M 0C |-B| 3M 3C, Depth: 11, Path Cost: 11, Applied Operator: Move 1 M 1 
         &lt;span class=&quot;n&quot;&gt;removeVals&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;v&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;vals&lt;/span&gt;
     &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;removeVals&lt;/span&gt;
 
-&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;__name__&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&#39;__main__&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
-    &lt;span class=&quot;n&quot;&gt;varsAndDomains&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;A&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;B&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;C&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;D&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;E&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;F&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;G&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&#39;H&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;7&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;8&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]}&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;__name__&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'__main__'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;varsAndDomains&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'A'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'B'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'C'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'D'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'E'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'F'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'G'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'H'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;7&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;8&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]}&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;csp&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CSP&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;CSP&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;varsAndDomains&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;CheckConstraints&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ForwardChecking&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;node&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;csp&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Solve&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
     &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;node&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
@@ -1080,7 +1468,7 @@ State: 0M 0C |-B| 3M 3C, Depth: 11, Path Cost: 11, Applied Operator: Move 1 M 1 
 
 &lt;p&gt;Solution found for the problem (each letter corresponds to a row on chess board and values are columns where queen is located);&lt;/p&gt;
 
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;State: {&#39;A&#39;: 1, &#39;C&#39;: 8, &#39;B&#39;: 5, &#39;E&#39;: 3, &#39;D&#39;: 6, &#39;G&#39;: 2, &#39;F&#39;: 7, &#39;H&#39;: 4}, Depth: 8, Path Cost: 8, Applied Operator: Assign Value
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;State: {'A': 1, 'C': 8, 'B': 5, 'E': 3, 'D': 6, 'G': 2, 'F': 7, 'H': 4}, Depth: 8, Path Cost: 8, Applied Operator: Assign Value
 &lt;/code&gt;&lt;/pre&gt;
 &lt;/div&gt;
 
@@ -1090,7 +1478,7 @@ State: 0M 0C |-B| 3M 3C, Depth: 11, Path Cost: 11, Applied Operator: Move 1 M 1 
 
 &lt;p&gt;Feel free to contact me for any bug reports, suggestions and I’d be glad to answer your questions.&lt;/p&gt;
 </description>
-        <pubDate>Mon, 07 Feb 2011 14:14:13 -0500</pubDate>
+        <pubDate>Mon, 07 Feb 2011 21:14:13 +0200</pubDate>
         <link>http://gokererdogan.github.io/2011/02/07/uninformed-search-and-constraint-satisfaction-problems/</link>
         <guid isPermaLink="true">http://gokererdogan.github.io/2011/02/07/uninformed-search-and-constraint-satisfaction-problems/</guid>
         
@@ -1309,49 +1697,49 @@ We will also generate a separate validation set containing 100 points without no
 &lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mf&quot;&gt;0.2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;    &lt;span class=&quot;c1&quot;&gt;% x values for plotting&lt;/span&gt;
 &lt;span class=&quot;nb&quot;&gt;figure&lt;/span&gt;
 &lt;span class=&quot;nb&quot;&gt;hold&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;on&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;xv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;-r&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;LineWidth&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;% plot validation set&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;xv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'-r'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'LineWidth'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;% plot validation set&lt;/span&gt;
 &lt;span class=&quot;c1&quot;&gt;% plot 5 different fits&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;-r&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;20&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;-g&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;30&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;-b&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;40&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;-c&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;50&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;-m&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'-r'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;20&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'-g'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;30&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'-b'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;40&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'-c'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;50&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'-m'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
 &lt;span class=&quot;c1&quot;&gt;% plot average fit&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;avgcoeff1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;-.ok&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;LineWidth&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;legend&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;2*sin(1.5*x)&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;Ex. Fit 1&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;Ex. Fit 2&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;Ex. Fit 3&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;Ex. Fit 4&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;Ex. Fit 5&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;Average Fit&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;title&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;1st Degree Fits&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;avgcoeff1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'-.ok'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'LineWidth'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;legend&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'2*sin(1.5*x)'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'Ex. Fit 1'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'Ex. Fit 2'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'Ex. Fit 3'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'Ex. Fit 4'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'Ex. Fit 5'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'Average Fit'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;title&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'1st Degree Fits'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
 &lt;span class=&quot;nb&quot;&gt;hold&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;off&lt;/span&gt;
 &lt;span class=&quot;nb&quot;&gt;figure&lt;/span&gt;
 &lt;span class=&quot;nb&quot;&gt;hold&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;on&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;xv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;-r&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;LineWidth&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;% plot validation set&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;xv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'-r'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'LineWidth'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;% plot validation set&lt;/span&gt;
 &lt;span class=&quot;c1&quot;&gt;% plot 5 different fits&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;-r&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;20&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;-g&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;30&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;-b&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;40&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;-c&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;50&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;-m&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'-r'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;20&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'-g'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;30&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'-b'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;40&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'-c'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;50&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'-m'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
 &lt;span class=&quot;c1&quot;&gt;% plot average fit&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;avgcoeff3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;-.ok&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;LineWidth&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;legend&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;2*sin(1.5*x)&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;Ex. Fit 1&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;Ex. Fit 2&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;Ex. Fit 3&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;Ex. Fit 4&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;Ex. Fit 5&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;Average Fit&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;title&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;3rd Degree Fits&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;avgcoeff3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'-.ok'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'LineWidth'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;legend&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'2*sin(1.5*x)'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'Ex. Fit 1'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'Ex. Fit 2'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'Ex. Fit 3'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'Ex. Fit 4'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'Ex. Fit 5'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'Average Fit'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;title&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'3rd Degree Fits'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
 &lt;span class=&quot;nb&quot;&gt;hold&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;off&lt;/span&gt;
 &lt;span class=&quot;nb&quot;&gt;figure&lt;/span&gt;
 &lt;span class=&quot;nb&quot;&gt;hold&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;on&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;xv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;-r&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;LineWidth&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;% plot validation set&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;xv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'-r'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'LineWidth'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;% plot validation set&lt;/span&gt;
 &lt;span class=&quot;c1&quot;&gt;% plot 5 different fits&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;-r&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;20&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;-g&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;30&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;-b&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;40&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;-c&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;50&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;-m&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'-r'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;20&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'-g'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;30&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'-b'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;40&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'-c'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;50&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'-m'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
 &lt;span class=&quot;c1&quot;&gt;% plot average fit&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;avgcoeff5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;-.ok&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;LineWidth&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;legend&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;2*sin(1.5*x)&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;Ex. Fit 1&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;Ex. Fit 2&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;Ex. Fit 3&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;Ex. Fit 4&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;Ex. Fit 5&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;Average Fit&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;title&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;5th Degree Fits&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;avgcoeff5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'-.ok'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'LineWidth'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;legend&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'2*sin(1.5*x)'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'Ex. Fit 1'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'Ex. Fit 2'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'Ex. Fit 3'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'Ex. Fit 4'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'Ex. Fit 5'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'Average Fit'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;title&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'5th Degree Fits'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
 &lt;span class=&quot;nb&quot;&gt;hold&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;off&lt;/span&gt;
 
 &lt;span class=&quot;c1&quot;&gt;% bias calculation&lt;/span&gt;
-&lt;span class=&quot;c1&quot;&gt;% sum the squared difference on validation set for each degree&#39;s average fit&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;% sum the squared difference on validation set for each degree's average fit&lt;/span&gt;
 &lt;span class=&quot;n&quot;&gt;bias&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;sum&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;avgcoeff1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;xv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.^&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;100&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;   
 &lt;span class=&quot;n&quot;&gt;bias&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;sum&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;avgcoeff2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;xv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.^&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;100&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 &lt;span class=&quot;n&quot;&gt;bias&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;sum&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;avgcoeff3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;xv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.^&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;100&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
@@ -1361,7 +1749,7 @@ We will also generate a separate validation set containing 100 points without no
 &lt;span class=&quot;c1&quot;&gt;%variance calculation&lt;/span&gt;
 &lt;span class=&quot;n&quot;&gt;varm&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;zeros&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;100&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
 &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;100&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;% calculate the variance for each sample&lt;/span&gt;
-    &lt;span class=&quot;c1&quot;&gt;% sum each fit&#39;s squared error with average fit on validation set to&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;% sum each fit's squared error with average fit on validation set to&lt;/span&gt;
     &lt;span class=&quot;c1&quot;&gt;% get variances&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;varm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;sum&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;xv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;avgcoeff1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;xv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.^&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;100&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;varm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;sum&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;coeffs2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,:),&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;xv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;polyval&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;avgcoeff2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;xv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.^&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;100&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
@@ -1373,18 +1761,18 @@ We will also generate a separate validation set containing 100 points without no
 &lt;span class=&quot;nb&quot;&gt;figure&lt;/span&gt;
 &lt;span class=&quot;nb&quot;&gt;hold&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;on&lt;/span&gt;
 &lt;span class=&quot;c1&quot;&gt;% plot biases, variances and error&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;bias&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;-.xk&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;vars&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;-xr&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;bias&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;vars&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;-.og&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;legend&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;Bias&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;Variance&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;Error&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
-&lt;span class=&quot;nb&quot;&gt;title&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&#39;Bias/Variance Dilemma&#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;bias&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'-.xk'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;vars&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'-xr'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;plot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;bias&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;vars&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'-.og'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;legend&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'Bias'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'Variance'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'Error'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;title&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'Bias/Variance Dilemma'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
 &lt;span class=&quot;nb&quot;&gt;hold&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;off&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
 &lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
 </description>
-        <pubDate>Mon, 24 Jan 2011 19:37:03 -0500</pubDate>
-        <link>http://gokererdogan.github.io/2011/01/24/bias-variance-dilemma/</link>
-        <guid isPermaLink="true">http://gokererdogan.github.io/2011/01/24/bias-variance-dilemma/</guid>
+        <pubDate>Tue, 25 Jan 2011 02:37:03 +0200</pubDate>
+        <link>http://gokererdogan.github.io/2011/01/25/bias-variance-dilemma/</link>
+        <guid isPermaLink="true">http://gokererdogan.github.io/2011/01/25/bias-variance-dilemma/</guid>
         
         <category>bias variance dilemma</category>
         

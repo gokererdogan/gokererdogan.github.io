@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width initial-scale=1" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <title>Variational Autoencoder Explained</title>
+    <meta name="description" content="Goker Erdogan's personal website.
+">
+
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="canonical" href="http://gokererdogan.github.io/2017/08/15/variational-autoencoder-explained/">
+       <!-- Bootstrap core CSS -->
+    <link href="/css/bootstrap.min.flatly.css" rel="stylesheet">
+       <!-- Syntax highlighting -->
+    <link href="/css/syntax.css" rel="stylesheet">
+    <script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-73032750-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+
+</head>
+
+
+  <body>
+
+    <header class="site-header">
+<div class="navbar navbar-default navbar-fixed-top">
+      <div class="container" style="max-width: 1000px;">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="/index.html">Goker Erdogan</a>
+        </div>
+        <div class="collapse navbar-collapse">
+          <ul class="nav navbar-nav">
+            <li><a href="/index.html#about">About</a></li>
+            <li><a href="/index.html#research">Research Interests</a></li>
+            <li><a href="/index.html#publications">Publications</a></li>
+            <li><a href="/index.html#teaching">Teaching</a></li>
+	    <li><a href="https://github.com/gokererdogan">Code</a></li>
+            <li><a href="/index.html#posts">Blog</a></li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+</div>
+<!--
+  <div class="wrapper">
+
+    <a class="site-title" href="/">Goker Erdogan</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+    </nav>
+
+  </div>
+-->
+</header>
+
+
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Variational Autoencoder Explained</h1>
+    <p class="post-meta">Aug 15, 2017 • goker</p>
+  </header>
+
+  <article class="post-content">
+    <p><em>Note: This post is an exposition of the mathematics behind the variational autoencoder. A PDF version (with equation numbers and better formatting) can be seen <a href="http://www2.bcs.rochester.edu/sites/jacobslab/cheat_sheet/VariationalAutoEncoder.pdf">here</a>. I also have two earlier posts that are relevant to the variational autoencoder: one on <a href="/2016/06/03/variational-autoencoder/">the implementation of the variational autoencoder</a>, and one on <a href="/2016/07/01/reparameterization-trick/">the reparameterization trick</a></em></p>
+
+<p>The variational autoencoder (VA)<sup id="fnref:1"><a href="#fn:1" class="footnote">1</a></sup> is a
+nonlinear latent variable model with an efficient gradient-based
+training procedure based on variational principles. In latent variable
+models, we assume that the observed <script type="math/tex">x</script> are generated from some latent
+(unobserved) <script type="math/tex">z</script>; these latent variables capture some “interesting”
+structure in the observed data that is not immediately visible from the
+observations themselves. For example, a latent variable model called
+independent components analysis can be used to separate the individual
+speech signals from a recording of people talking simultaneously. More
+formally, we can think of a latent variable model as a probability
+distribution <script type="math/tex">p(x|z)</script> describing the generative process (of how <script type="math/tex">x</script> is
+generated from <script type="math/tex">z</script>) along with a prior <script type="math/tex">p(z)</script> on latent variables <script type="math/tex">z</script>.
+This corresponds to the following simple graphical model
+<script type="math/tex">z \rightarrow x</script></p>
+
+<h4 id="learning-in-a-latent-variable-model">Learning in a latent variable model</h4>
+
+<p>Our purpose in such a model is to learn the generative process, i.e.,
+<script type="math/tex">p(x|z)</script> (we assume <script type="math/tex">p(z)</script> is known). A good <script type="math/tex">p(x|z)</script> would assign high
+probabilities to observed <script type="math/tex">x</script>; hence, we can learn a good <script type="math/tex">p(x|z)</script> by
+maximizing the probability of observed data, i.e., <script type="math/tex">p(x)</script>. Assuming that
+<script type="math/tex">p(x|z)</script> is parameterized by <script type="math/tex">\theta</script>, we need to solve the following
+optimization problem</p>
+
+<script type="math/tex; mode=display">\max_{\theta}\,\, p_{\theta}(x)</script>
+
+<p>where <script type="math/tex">p_{\theta}(x)=\int_z p(z) p_{\theta}(x|z)</script>. This is a difficult
+optimization problem because it involves a possibly intractable integral
+over <script type="math/tex">z</script>.</p>
+
+<h4 id="posterior-inference-in-a-latent-variable-model">Posterior inference in a latent variable model</h4>
+
+<p>For the moment, let us set aside this learning problem and focus on a
+different one: posterior inference of <script type="math/tex">p(z|x)</script>. As we will see shortly,
+this problem is closely related to the learning problem and in fact
+leads to a method for solving it. Given <script type="math/tex">p(z)</script> and <script type="math/tex">p(x|z)</script>, we would
+like to infer the posterior distribution <script type="math/tex">p(z|x)</script>. This is usually
+rather difficult because it involves an integral over <script type="math/tex">z</script>,
+<script type="math/tex">p(z|x)=\frac{p(x,z)}{\int_z p(x,z)}</script>. For most latent variable models,
+this integral cannot be evaluated, and <script type="math/tex">p(z|x)</script> needs to be
+approximated. For example, we can use Markov chain Monte Carlo
+techniques to sample from the posterior. However, here we will look at
+an alternative technique based on variational inference. Variational
+inference converts the posterior inference problem into the optimization
+problem of finding an approximate probability distribution <script type="math/tex">q(z|x)</script> that
+is as close as possible to <script type="math/tex">p(z|x)</script>. This can be formalized as solving
+the following optimization problem</p>
+
+<script type="math/tex; mode=display">\min_{\phi}\,\, \text{KL}(q_{\phi}(z|x) || p(z|x))</script>
+
+<p>where <script type="math/tex">\phi</script> parameterizes the approximation <script type="math/tex">q</script> and <script type="math/tex">\text{KL}(q||p)</script> denotes the
+Kullback-Leibler divergence between <script type="math/tex">q</script> and <script type="math/tex">p</script> and is given by
+<script type="math/tex">\text{KL}(q||p)=\int_x q(x) \log \frac{q(x)}{p(x)}</script>. However, this
+optimization problem is no easier than our original problem because it
+still requires us to evaluate <script type="math/tex">p(z|x)</script>. Let us see if we can get around
+that. Plugging in the definition of KL, we can write,</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{aligned}
+    \text{KL}(q_{\phi}(z|x) || p(z|x)) &= \int_z q_{\phi}(z|x) \log \frac{q_{\phi}(z|x)}{p(z|x)} \\
+                                       &= \int_z q_{\phi}(z|x) \log \frac{q_{\phi}(z|x) p(x)}{p(x,z)} \\
+                                       &= \int_z q_{\phi}(z|x) \log \frac{q_{\phi}(z|x)}{p(x,z)} + \int_z q_{\phi}(z|x) \log p(x) \\
+                                       &= -\mathcal{L}(\phi) + \log p(x) \\
+\end{aligned} %]]></script>
+
+<p>where we defined</p>
+
+<script type="math/tex; mode=display">\begin{aligned}
+    \mathcal{L}(\phi) = \int_z q_{\phi}(z|x) \log \frac{p(x,z)}{q_{\phi}(z|x)}. 
+\end{aligned}</script>
+
+<p>Since <script type="math/tex">p(x)</script> is independent of <script type="math/tex">q_{\phi}(z|x)</script>, minimizing
+<script type="math/tex">\text{KL}(q_{\phi}(z|x)||p(z|x))</script> is equivalent to maximizing
+<script type="math/tex">\mathcal{L}(\phi)</script>. Note that optimizing <script type="math/tex">\mathcal{L}(\phi)</script> is much
+easier since it only involves <script type="math/tex">p(x,z) = p(z) p(x|z)</script> which does not
+involve any intractable integrals. Hence, we can do variational
+inference of the posterior in a latent variable model by solving the
+following optimization problem</p>
+
+<script type="math/tex; mode=display">\max_{\phi}\,\, \mathcal{L}(\phi)</script>
+
+<h4 id="back-to-the-learning-problem">Back to the learning problem</h4>
+
+<p>The above derivation also suggests a way for learning the generative
+model <script type="math/tex">p(x|z)</script>. We see that <script type="math/tex">\mathcal{L}(\phi)</script> is in fact a lower bound
+on the log probability of observed data <script type="math/tex">p(x)</script></p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{aligned}
+    \text{KL}(q_{\phi}(z|x) || p(z|x)) &= -\mathcal{L}(\phi) + \log p(x) \\
+     \mathcal{L}(\phi) &= \log p(x) - \text{KL}(q_{\phi}(z|x) || p(z|x)) \\
+     \mathcal{L}(\phi) &\le \log p(x) \\
+\end{aligned} %]]></script>
+
+<p>where we used the fact that KL is never negative. Now, assume instead of doing
+posterior inference, we fix <script type="math/tex">q</script> and learn the generative model
+<script type="math/tex">p_{\theta}(x|z)</script>. Then <script type="math/tex">\mathcal{L}</script> is now a function of <script type="math/tex">\theta</script>,
+<script type="math/tex">\mathcal{L}(\theta)=\int_z q(z|x) \log \frac{p(z) p_{\theta}(x|z)}{q(z|x)}</script>.
+Since <script type="math/tex">\mathcal{L}</script> is a lower bound on <script type="math/tex">\log p(x)</script>, we can maximize
+<script type="math/tex">\mathcal{L}</script> as a proxy for maximizing <script type="math/tex">\log p(x)</script>. In fact, if
+<script type="math/tex">q(z|x) = p(z|x)</script>, the KL term will be zero and
+<script type="math/tex">\mathcal{L}(\theta) = \log p(x)</script>, i.e., maximizing <script type="math/tex">\mathcal{L}</script> will
+be equivalent to maximizing <script type="math/tex">p(x)</script>. This suggests maximizing
+<script type="math/tex">\mathcal{L}</script> with respect to both <script type="math/tex">\theta</script> and <script type="math/tex">\phi</script> to learn
+<script type="math/tex">q_{\phi}(z|x)</script> and <script type="math/tex">p_{\theta}(x|z)</script> at the same time.</p>
+
+<p><script type="math/tex">\begin{aligned}
+    \max_{\theta, \phi}\,\, \mathcal{L}(\theta, \phi)
+    \label{eqnOptimProblem}\end{aligned}</script> where <script type="math/tex">% <![CDATA[
+\begin{aligned}
+    \mathcal{L}(\theta, \phi) &= \int_z q_{\phi}(z|x) \log \frac{p(z) p_{\theta}(x|z)}{q_{\phi}(z|x)} \\ 
+                              &= \mathbb{E}_{q}\left[\log \frac{p(z) p_{\theta}(x|z)}{q_{\phi}(z|x)}\right] \notag
+\end{aligned} %]]></script></p>
+
+<h4 id="a-brief-aside-on-expectation-maximization-em">A brief aside on expectation maximization (EM)</h4>
+
+<p>EM can be seen as one particular strategy for solving the above
+maximization problem. In EM, the E step
+consists of calculating the optimal <script type="math/tex">q_{\phi}(z|x)</script> based on the current
+<script type="math/tex">\theta</script> (which is the posterior <script type="math/tex">p_{\theta}(z|x)</script>). In the M step, we
+plug the optimal <script type="math/tex">q_{\phi}(z|x)</script> into <script type="math/tex">\mathcal{L}</script> and maximize it with
+respect to <script type="math/tex">\theta</script>. In other words, EM can be seen as a coordinate
+ascent procedure that maximizes <script type="math/tex">\mathcal{L}</script> with respect to <script type="math/tex">\phi</script> and
+<script type="math/tex">\theta</script> in alternation.</p>
+
+<h4 id="solving-the-maximization-problem">Solving the maximization problem</h4>
+
+<p>One can use various techniques to solve the above maximization problem.
+Here, we will focus on stochastic gradient ascent since the variational
+autoencoder uses this technique. In gradient-based approaches, we
+evaluate the gradient of our objective with respect to model parameters
+and take a small step in the direction of the gradient. Therefore, we
+need to estimate the gradient of <script type="math/tex">\mathcal{L}(\theta, \phi)</script>. Assuming
+we have a set of samples <script type="math/tex">z^{(l)}, l=1\dots L</script> from <script type="math/tex">q_{\phi}(z|x)</script>, we
+can form the following Monte Carlo estimate of <script type="math/tex">\mathcal{L}</script></p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{aligned}
+    \mathcal{L}(\theta, \phi) &\approx \frac{1}{L} \sum_{l=1}^{L} \log p_{\theta}(x, z^{(l)}) - \log q_{\phi}(z^{(l)}|x) \label{eqnMCVB} \\
+                              &\text{where} \,\,\, z^{(l)} \sim q_{\phi}(z|x) \notag
+\end{aligned} %]]></script>
+
+<p>and <script type="math/tex">p_{\theta}(x, z) = p(z) p_{\theta}(x|z)</script>. The derivative with
+respect to <script type="math/tex">\theta</script> is easy to estimate since <script type="math/tex">\theta</script> appears only
+inside the sum.</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{aligned}
+    \nabla_{\theta} \mathcal{L}(\theta, \phi) &\approx \frac{1}{L} \sum_{l=1}^{L} \nabla_{\theta} \log p_{\theta}(x, z^{(l)}) \\
+                              &\text{where} \,\,\, z^{(l)} \sim q_{\phi}(z|x) \notag
+\end{aligned} %]]></script>
+
+<p>It is the derivative with respect to <script type="math/tex">\phi</script> that is harder to estimate.
+We cannot simply push the gradient operator into the sum since the
+samples used to estimate <script type="math/tex">\mathcal{L}</script> are from <script type="math/tex">q_{\phi}(z|x)</script> which
+depends on <script type="math/tex">\phi</script>. This can be seen by noting that
+<script type="math/tex">\nabla_{\phi} \mathbb{E}_{q_{\phi}}[ f(z)] \neq \mathbb{E}_{q_{\phi}}[\nabla_{\phi} f(z)]</script>,
+where <script type="math/tex">f(z)=\log p_{\theta}(x, z^{(l)}) - \log q_{\phi}(z^{(l)}|x)</script>. The
+standard estimator for the gradient of such expectations is in practice
+too high variance to be useful (See Appendix for further details). One
+key contribution of the variational autoencoder is a much more efficient
+estimate for <script type="math/tex">\nabla_{\phi} \mathcal{L}(\theta, \phi)</script> that relies on
+what is called the <em>reparameterization trick</em>.</p>
+
+<h4 id="reparameterization-trick">Reparameterization trick</h4>
+
+<p>We would like to estimate the gradient of an expectation of the form
+<script type="math/tex">\mathbb{E}_{q_{\phi}(z|x)}[f(z)]</script>. The problem is that the gradient
+with respect to <script type="math/tex">\phi</script> is difficult to estimate because <script type="math/tex">\phi</script> appears
+in the distribution with respect to which the expectation is taken. If
+we can somehow rewrite this expectation in such a way that <script type="math/tex">\phi</script>
+appears only inside the expectation, we can simply push the gradient
+operator into the expectation. Assume that we can obtain samples from
+<script type="math/tex">q_{\phi}(z|x)</script> by sampling from a noise distribution <script type="math/tex">p(\epsilon)</script> and
+pushing them through a differentiable transformation
+<script type="math/tex">g_{\phi}(\epsilon, x)</script></p>
+
+<script type="math/tex; mode=display">z = g_{\phi}(\epsilon, x)\,\, \text{with}\,\, \epsilon \sim p(\epsilon)</script>
+
+<p>Then we can rewrite the expectation <script type="math/tex">\mathbb{E}_{q_{\phi}(z|x)}[f(z)]</script>
+as follows</p>
+
+<script type="math/tex; mode=display">\begin{aligned}
+    \mathbb{E}_{q_{\phi}(z|x)}[f(z)] = \mathbb{E}_{p(\epsilon)}[f(g_{\phi}(\epsilon, x))]
+\end{aligned}</script>
+
+<p>Assuming we have a set of samples <script type="math/tex">\epsilon^{(l)}, l=1\dots L</script> from
+<script type="math/tex">p(\epsilon)</script>, we can form a Monte Carlo estimate of
+<script type="math/tex">\mathcal{L}(\theta, \phi)</script> 
+<script type="math/tex">% <![CDATA[
+\begin{aligned}
+    \mathcal{L}(\theta, \phi) &\approx \frac{1}{L} \sum_{l=1}^{L} \log p_{\theta}(x, z^{(l)}) - \log q_{\phi}(z^{(l)}|x) \\
+                              &\text{where} \,\,\, z^{(l)} = g_{\phi}(\epsilon^{(l)}, x) \,\,\,\text{and}\,\,\, \epsilon^{(l)} \sim p(\epsilon) \notag
+\end{aligned} %]]></script></p>
+
+<p>Now <script type="math/tex">\phi</script> appears only inside the sum, and the derivative of
+<script type="math/tex">\mathcal{L}</script> with respect to <script type="math/tex">\phi</script> can be estimated in the same way we
+did for <script type="math/tex">\theta</script>. This in essence is the reparameterization trick and
+reduces the variance in the estimates of
+<script type="math/tex">\nabla_{\phi} \mathcal{L}(\theta, \phi)</script> dramatically, making it
+feasible to train large latent variable models. We can find an
+appropriate noise distribution <script type="math/tex">p(\epsilon)</script> and a differentiable
+transformation <script type="math/tex">g_{\phi}</script> for many choices of approximate posterior
+<script type="math/tex">q_{\phi}(z|x)</script> (see the original paper<sup id="fnref:1:1"><a href="#fn:1" class="footnote">1</a></sup> for
+several strategies). We will see an example for the multivariate
+Gaussian distribution below when we talk about the variational
+autoencoder.</p>
+
+<h4 id="variational-autoencoder-va">Variational Autoencoder (VA)</h4>
+
+<p>The above discussion of latent variable models is general, and the
+variational approach outlined above can be applied to any latent
+variable model. We can think of the variational autoencoder as a latent
+variable model that uses neural networks (specifically multilayer
+perceptrons) to model the approximate posterior <script type="math/tex">q_{\phi}(z|x)</script> and the
+generative model <script type="math/tex">p_{\theta}(x, z)</script>. More specifically, we assume that
+the approximate posterior is a multivariate Gaussian with a diagonal
+covariance matrix. The parameters of this Gaussian distribution are
+calculated by a multilayer perceptron (MLP) that takes <script type="math/tex">x</script> as input. We
+denote this MLP with two nonlinear functions <script type="math/tex">\mu_{\phi}</script> and
+<script type="math/tex">\sigma_{\phi}</script> that map from <script type="math/tex">x</script> to the mean and standard deviation
+vectors respectively.</p>
+
+<script type="math/tex; mode=display">q_{\phi}(z|x) = \mathcal{N}(z; \mu_{\phi}(x), \sigma_{\phi}(x) \mathbf{I})</script>
+
+<p>For the generative model <script type="math/tex">p_{\theta}(x, z)</script>, we assume <script type="math/tex">p(z)</script> is fixed
+to a unit multivariate Gaussian, i.e.,
+<script type="math/tex">p(z) = \mathcal{N}(0, \mathbf{I})</script>. The form of <script type="math/tex">p_{\theta}(x|z)</script>
+depends on the nature of the data being modeled. For example, for real
+<script type="math/tex">x</script>, we can use a multivariate Gaussian, or for binary <script type="math/tex">x</script>, we can use a
+Bernoulli distribution. Here, let us assume that <script type="math/tex">x</script> is real and
+<script type="math/tex">p_{\theta}(x|z)</script> is Gaussian. Again, we assume the parameters of
+<script type="math/tex">p_{\theta}(x|z)</script> are calculated by a MLP. However, note that this time
+the input to the MLP are <script type="math/tex">z</script>, not <script type="math/tex">x</script>. Denoting this MLP with two
+nonlinear functions <script type="math/tex">\mu_{\theta}</script> and <script type="math/tex">\sigma_{\theta}</script> that map from
+<script type="math/tex">z</script> to the mean and standard deviation vectors respectively, we have</p>
+
+<script type="math/tex; mode=display">p_{\theta}(x|z) = \mathcal{N}(x; \mu_{\theta}(z), \sigma_{\theta}(z) \mathbf{I})</script>
+
+<p>Looking at the network architecture of this model, we can see why it is
+called an autoencoder.</p>
+
+<script type="math/tex; mode=display">x \xrightarrow{q_{\phi}(z|x)} z \xrightarrow{p_{\theta}(x|z)} x</script>
+
+<p>The input <script type="math/tex">x</script> is mapped probabilistically to a code <script type="math/tex">z</script> by the encoder
+<script type="math/tex">q_{\phi}</script>, which in turn is mapped probabilistically back to the input
+space by the decoder <script type="math/tex">p_{\theta}</script>.</p>
+
+<p>In order to learn <script type="math/tex">\theta</script> and <script type="math/tex">\phi</script>, the variational autoencoder uses
+the variational approach outlined above. We sample <script type="math/tex">z^{(l)}, l=1\dots L</script>
+from <script type="math/tex">q_{\phi}(z|x)</script> and use these to obtain a Monte Carlo estimate of
+the variational lower bound <script type="math/tex">\mathcal{L}(\theta, \phi)</script>. Then we take the 
+derivative of this bound with respect
+to the parameters and use these in a stochastic gradient ascent
+procedure to learn <script type="math/tex">\theta</script> and <script type="math/tex">\phi</script>. As we discussed above, in order
+to reduce the variance of our gradient estimates, we apply the
+reparameterization trick. We would like to reparameterize the
+multivariate Gaussian distribution <script type="math/tex">q_{\phi}(z|x)</script> using a noise
+distribution <script type="math/tex">p(\epsilon)</script> and a differentiable transformation
+<script type="math/tex">g_{\phi}</script>. We assume <script type="math/tex">\epsilon</script> are sampled from a multivariate unit
+Gaussian, i.e., <script type="math/tex">p(\epsilon) \sim \mathcal{N}(0, \mathbf{I})</script>. Then if
+we let
+<script type="math/tex">z = g_{\phi}(\epsilon, x) = \mu_{\phi}(x) + \epsilon \odot \sigma_{\phi}(x)</script>,
+<script type="math/tex">z</script> will have the desired distribution
+<script type="math/tex">q_{\phi}(z|x) \sim \mathcal{N}(z; \mu_{\phi}(x), \sigma_{\phi}(x))</script>
+(<script type="math/tex">\odot</script> denotes elementwise multiplication). Therefore, we can rewrite
+the variational lower bound using this reparameterization for <script type="math/tex">q_{\phi}</script>
+as follows</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{aligned}
+    \mathcal{L}(\theta, \phi) &\approx \frac{1}{L} \sum_{l=1}^{L} \log p_{\theta}(x, z^{(l)}) - \log q_{\phi}(z^{(l)}|x) \\
+                              &\text{where} \,\,\, z^{(l)} = \mu_{\phi}(x) + \epsilon \odot \sigma_{\phi}(x) \,\,\,\text{and}\,\,\, \epsilon^{(l)} \sim \mathcal{N}(\epsilon; 0, \mathbf{I}) \notag
+\end{aligned} %]]></script>
+
+<p>There is one more simplification we can make. Writing <script type="math/tex">p_{\theta}(x,z)</script>
+explicitly as <script type="math/tex">p(z) p_{\theta}(x|z)</script>, we see</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{aligned}
+    \mathcal{L}(\theta, \phi) &= \mathbb{E}_{q}\left[\log \frac{p(z) p_{\theta}(x|z)}{q_{\phi}(z|x)}\right] \\
+                              &= \mathbb{E}_{q}\left[\log \frac{p(z) }{q_{\phi}(z|x)}\right] + \mathbb{E}_{q}\left[p_{\theta}(x|z)\right] \\
+                              &= -\text{KL}(q_{\phi}(z|x)||p(z)) + \mathbb{E}_{q}\left[p_{\theta}(x|z)\right] \\
+\end{aligned} %]]></script>
+
+<p>Since both <script type="math/tex">p(z)</script> and <script type="math/tex">q_{\phi}(z|x)</script> are Gaussian, the KL term has a
+closed form expression. Plugging that in, we get the following
+expression for the variational lower bound.</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{aligned}
+    \mathcal{L}(\theta, \phi) &\approx \frac{1}{2} \sum_{d=1}^{D} \left(1 + \log(\sigma_{\phi,d}^2(x)) - \mu_{\phi, d}^2(x) - \sigma_{\phi, d}^2(x) \right) + \frac{1}{L} \sum_{l=1}^{L} \log p_{\theta}(x|z^{(l)}) \label{eqnVAVB} \\
+                              &\text{where} \,\,\, z^{(l)} = \mu_{\phi}(x) + \epsilon \odot \sigma_{\phi}(x) \,\,\,\text{and}\,\,\, \epsilon^{(l)} \sim \mathcal{N}(\epsilon; 0, \mathbf{I}) \notag
+\end{aligned} %]]></script>
+
+<p>Here we assumed that <script type="math/tex">z</script> has <script type="math/tex">D</script> dimensions and used <script type="math/tex">\mu_{\phi,d}</script> and
+<script type="math/tex">\sigma_{\phi,d}</script> to denote the <script type="math/tex">d</script>th dimension of the mean and standard
+deviation vectors for <script type="math/tex">z</script>. So far we have looked at a single data point
+<script type="math/tex">x</script>. Now, assume that we have a dataset with <script type="math/tex">N</script> datapoints and draw a
+random sample of <script type="math/tex">M</script> datapoints. The variational lower bound estimate
+for the minibatch <script type="math/tex">\{x^{i}\}, i=1\dots M</script> is simply the average of
+<script type="math/tex">\mathcal{L}(\theta, \phi)</script> values for each <script type="math/tex">x^{(i)}</script></p>
+
+<script type="math/tex; mode=display">\begin{aligned}
+    \mathcal{L}(\theta, \phi; \{x^{i}\}_{i=1}^{M}) \approx \frac{N}{M} \sum_{i=1}^{M} \mathcal{L}(\theta, \phi; x^{(i)})
+    \label{eqnVAVBMinibatch}
+\end{aligned}</script>
+
+<p>where <script type="math/tex">\mathcal{L}(\theta, \phi; x^{(i)})</script> is given above. In
+order to learn <script type="math/tex">\theta</script> and <script type="math/tex">\phi</script>, we can take the derivative of the
+above expression and use these in a stochastic gradient-ascent
+procedure.</p>
+
+<h4 id="an-example-application">An example application</h4>
+
+<p>As an example application, we train a variational autoencoder on the
+handwritten digits dataset MNIST. We use multilayer perceptrons with one
+hidden layer with 500 units for both the encoder (<script type="math/tex">q_{\phi}</script>) and
+decoder (<script type="math/tex">p_{\theta}</script>) networks. Because we are interested in
+visualizing the latent space, we set the number of latent dimensions to 2. 
+We use 1 sample per datapoint (<script type="math/tex">L=1</script>) and 100 datapoints per
+minibatch (<script type="math/tex">M=100</script>). We use stochastic gradient-ascent with a learning
+rate of 0.001 and train for 500 epochs (i.e., 500 passes over the whole
+dataset). The implementation can be seen online at
+<a href="https://github.com/gokererdogan/DeepLearning/tree/master/variational_autoencoder">https://github.com/gokererdogan/DeepLearning/tree/master/variational_autoencoder</a>.
+We provide two implementations, one in pure <code class="highlighter-rouge">theano</code> and one in
+<code class="highlighter-rouge">lasagne</code>. We plot the latent space by varying the latent <script type="math/tex">z</script> along each of 
+the two dimensions and sampling from the learned generative model. We see that 
+the model is able to capture some interesting structure in the set of handwritten 
+digits (compare to Fig4b in the original paper<sup id="fnref:1:2"><a href="#fn:1" class="footnote">1</a></sup>).</p>
+
+<p style="margin-left: auto; margin-right: auto; text-align: center;"><img src="/img/VariationalAutoencoder4b.png" alt="An illustration of the learned latent space for MNIST dataset)" width="400px" /></p>
+
+<h3 id="appendix">Appendix</h3>
+
+<h4 id="estimating-nabla_phi-mathbbe_q_phifz">Estimating <script type="math/tex">\nabla_{\phi} \mathbb{E}_{q_{\phi}}[f(z)]</script></h4>
+
+<p>One common approach to estimating the gradient of such expectations is
+to make use of the identity
+<script type="math/tex">\nabla_{\phi}q_{\phi} = q_{\phi} \nabla_{\phi} \log q_{\phi}</script></p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{aligned}
+    \nabla_{\phi}\mathbb{E}_{q_{\phi}}[f(z)] &= \nabla_{\phi} \int_z q_{\phi}(z|x)f(z) \\
+                                             &= \int_z \nabla_{\phi} q_{\phi}(z|x) f(z) \\
+                                             &= \int_z q_{\phi}(z|x) \nabla_{\phi} \log q(z|x) f(z) \\
+                                             &= \mathbb{E}_{q_{\phi}}[f(z) \nabla_{\phi} \log q(z|x)] \\
+\end{aligned} %]]></script>
+
+<p>This estimator is known by various names in the literature from the
+<em>REINFORCE algorithm</em> to <em>score function estimator</em> or <em>likelihood ratio
+trick</em>. Given samples <script type="math/tex">z^{(l)}, l=1\dots L</script> from <script type="math/tex">q_{\phi}(z|x)</script>, we can
+form an unbiased Monte Carlo estimate of the gradient of
+<script type="math/tex">\mathcal{L}(\theta, \phi)</script> with respect to <script type="math/tex">\phi</script> using this estimator.
+However, in practice it exhibits too high variance to be useful.</p>
+
+<h4 id="bibliography">Bibliography</h4>
+<div class="footnotes">
+  <ol>
+    <li id="fn:1">
+      <p>Kingma, D. P., &amp; Welling, M. (2014). Auto-Encoding Variational Bayes. arXiv:1312.6114&nbsp;<a href="#fnref:1" class="reversefootnote">&#8617;</a>&nbsp;<a href="#fnref:1:1" class="reversefootnote">&#8617;<sup>2</sup></a>&nbsp;<a href="#fnref:1:2" class="reversefootnote">&#8617;<sup>3</sup></a></p>
+    </li>
+  </ol>
+</div>
+
+  </article>
+
+</div>
+<script type="text/javascript"
+    src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col  footer-col-1">
+        <ul class="contact-list">
+          <li>Goker Erdogan</li>
+          <!-- <li><a href="mailto:gokererdogan@gmail.com">gokererdogan@gmail.com</a></li> -->
+        </ul>
+      </div>
+
+      <div class="footer-col  footer-col-2" style="float: right;">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/gokererdogan">
+              <span class="icon  icon--github">
+                <svg viewBox="0 0 16 16">
+                  <path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/>
+                </svg>
+              </span>
+
+              <span class="username">gokererdogan</span>
+            </a>
+          </li>
+          
+
+          
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+<!-- Bootstrap core JavaScript
+================================================== -->
+<!-- Placed at the end of the document so the pages load faster -->
+<script src="/js/jquery.js"></script>
+<script src="/js/bootstrap.min.js"></script>
+
+
+  </body>
+
+</html>
