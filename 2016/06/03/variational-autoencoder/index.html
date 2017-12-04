@@ -46,7 +46,6 @@
         <div class="collapse navbar-collapse">
           <ul class="nav navbar-nav">
             <li><a href="/index.html#about">About</a></li>
-            <li><a href="/index.html#research">Research Interests</a></li>
             <li><a href="/index.html#publications">Publications</a></li>
             <li><a href="/index.html#teaching">Teaching</a></li>
 	    <li><a href="https://github.com/gokererdogan">Code</a></li>
@@ -171,9 +170,8 @@ https://github.com/gokererdogan
 
     <span class="c"># LOSS FUNCTION</span>
     <span class="c"># first KL term in Eqn. 10 in the paper. Acts as a regularization on latent variables.</span>
-    <span class="n">ll_bound_kl_term</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">+</span> <span class="n">T</span><span class="o">.</span><span class="nb">sum</span><span class="p">(</span><span class="mf">2.</span> <span class="o">*</span> <span class="n">sigma</span><span class="p">)</span> <span class="o">-</span>
-                              <span class="n">T</span><span class="o">.</span><span class="nb">sum</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">mu</span><span class="p">))</span> <span class="o">-</span>
-                              <span class="n">T</span><span class="o">.</span><span class="nb">sum</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">2.</span> <span class="o">*</span> <span class="n">sigma</span><span class="p">)))</span> <span class="o">/</span> <span class="n">minibatch_size</span>
+    <span class="n">ll_bound_kl_term</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">mu</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">mu</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">T</span><span class="o">.</span><span class="nb">sum</span><span class="p">(</span><span class="mf">2.</span><span class="o">*</span> <span class="n">sigma</span><span class="p">)</span> <span class="o">-</span>
+                              <span class="n">T</span><span class="o">.</span><span class="nb">sum</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">mu</span><span class="p">))</span> <span class="o">-</span> <span class="n">T</span><span class="o">.</span><span class="nb">sum</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">2.</span> <span class="o">*</span> <span class="n">sigma</span><span class="p">)))</span> <span class="o">/</span> <span class="n">minibatch_size</span>
 
     <span class="c"># second term in Eqn. 10, measures data fit. </span>
     <span class="c"># Note because the outputs are 0-1, we use binary crossentropy.</span>
