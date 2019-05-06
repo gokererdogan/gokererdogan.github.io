@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Spelling Bee!</title>
+        <meta name="robots" content="noindex">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+    </head>
+    <body>
+        <div class="w3-auto">
+
+            <div class="w3-container w3-card w3-orange w3-text-white">
+              <h1>Spelling Bee!</h1>
+            </div>
+            
+            <div class="w3-auto">
+                <div class="w3-content w3-display-container w3-text-black" style="width: 600px">
+		  <div class="w3-display-position w3-padding w3-xlarge" style="top:35px;left:420px">Score: <span class="w3-text-orange" id="score">0</span></div>
+                  <div id="letter1" class="w3-display-position w3-padding w3-xxlarge" style="top:25px;left:250px"></div>
+                  <div id="letter2" class="w3-display-position w3-padding w3-xxlarge" style="top:25px;left:300px"></div>
+                  <div id="letter3" class="w3-display-position w3-padding w3-xxlarge" style="top:75px;left:225px"></div>
+                  <div id="letterC" class="w3-display-position w3-padding w3-xxlarge w3-text-orange" style="top:75px;left:275px"></div>
+                  <div id="letter4" class="w3-display-position w3-padding w3-xxlarge" style="top:75px;left:325px"></div>
+                  <div id="letter5" class="w3-display-position w3-padding w3-xxlarge" style="top:125px;left:250px"></div>
+                  <div id="letter6" class="w3-display-position w3-padding w3-xxlarge" style="top:125px;left:300px"></div>
+                  <div class="w3-display-position w3-center" style="top:220px;width:100%">
+                    <button id="shuffle" class="w3-button w3-gray">Shuffle</button>
+                  </div>
+                  <div id="message" class="w3-display-position w3-center w3-text-orange w3-large" style="top:300px;width:100%">
+		  </div>
+                  <div class="w3-display-position w3-center" style="top:350px;width:100%">
+                    <input id="word" class="w3-input" type="text" placeholder="Input word here"><br>
+                    <button id="guess" class="w3-button w3-black">Guess</button>
+                  </div>
+                  <div class="w3-display-position w3-center" style="top:530px;width:100%">
+			  You found <span id="num_found">0</span> of <span id="num_all"></span> words.<br>
+                    <div id="found_words" class="w3-panel w3-card w3-light-grey" style="width:100%"></div>
+                  </div>
+                  
+                </div>
+            </div>
+        </div>
+	<script type="text/javascript">
+		// https://stackoverflow.com/questions/3943772/how-do-i-shuffle-the-characters-in-a-string-in-javascript
+		String.prototype.shuffle = function () {
+		    var a = this.split(""),
+			n = a.length;
+
+		    for(var i = n - 1; i > 0; i--) {
+			var j = Math.floor(Math.random() * (i + 1));
+			var tmp = a[i];
+			a[i] = a[j];
+			a[j] = tmp;
+		    }
+		    return a.join("");
+		}
+
+		var target_words;
+		var all_words;
+		var target_word;
+		var valid_words;
+		var center_letter;
+		var other_letters;
+		var found_words = new Array();
+		var score = 0;
+
+		shuffle_letters = function(){
+		    other_letters = other_letters.shuffle()
+		    $("#letter1").text(other_letters[0]);
+		    $("#letter2").text(other_letters[1]);
+		    $("#letter3").text(other_letters[2]);
+		    $("#letter4").text(other_letters[3]);
+		    $("#letter5").text(other_letters[4]);
+		    $("#letter6").text(other_letters[5]);
+		    $("#letterC").text(center_letter);
+		}
+
+		check_guess = function(){
+		    var message = "";
+		    var word = $("#word").val().toLowerCase();
+		    if (valid_words.includes(word)) {
+			if (!found_words.includes(word)) {
+			    var word_score = 1
+			    message = "Well done!"; 
+
+			    unique_letters = new Set(word)
+			    if (unique_letters.size == 7) {
+			        word_score = 3;
+				message = "Congrats! Found the pangram!";
+			    }
+		            score += word_score;
+			    found_words.push(word);
+		            found_words = found_words.sort();
+		            $("#found_words").text(found_words.join(", "));
+		            $("#score").text(score);
+		            $("#num_found").text(found_words.length);
+		        }
+			else {
+			    message = "Already found.";
+			}
+		    }
+		    else {
+		        message = "Try again.";
+                    }
+
+		    $("#message").text(message);
+		    $("#message").show();
+		    // $("#message").fadeOut("slow");
+		    $("#word").val("");
+		}
+
+		$(document).ready(function(){
+			$("#message").hide();
+
+			// read all words and target words
+			$.get("spelling_bee/target_words.txt", function(data) {    
+			    target_words = data.split("\n");
+
+			    // pick the target word
+			    num_days = Math.floor(Date.now() / (24*60*60*1000));
+			    target_word = target_words[num_days % target_words.length];
+			    var center_letter_ix = new Date().getDay();
+			    center_letter = target_word[center_letter_ix].toUpperCase();
+			    other_letters = target_word.slice(0, center_letter_ix) + target_word.slice(center_letter_ix + 1, target_word.length);
+			    other_letters = other_letters.toUpperCase();
+			    shuffle_letters();
+			});
+
+			$.get("spelling_bee/valid_words.txt", function(data) {    
+			    all_words = data.split("\n");
+
+			    // find all valid words
+			    var target_letters = new Set(target_word);
+			    valid_words = all_words.filter(function(w) {
+			            if (!w.includes(center_letter.toLowerCase())) {
+			        	    return false;
+			            }
+			            var difference = new Set(w.split("").filter(x => !target_letters.has(x)));
+			            return difference.size == 0;
+			    });
+			    $("#num_all").text(valid_words.length);
+			});
+
+			// ...
+			$("#guess").click(function() {
+				check_guess();	
+			});
+
+			$("#word").keypress(function(event) {
+				if (event.which == 13) {
+					check_guess();
+				}
+				
+			});
+
+			$("#shuffle").click(function(){
+				shuffle_letters()
+			});
+		}); 
+	</script>
+    </body>
+</html>
