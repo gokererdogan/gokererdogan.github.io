@@ -6,8 +6,8 @@
 </description>
     <link>http://gokererdogan.github.io/</link>
     <atom:link href="http://gokererdogan.github.io/feed.xml" rel="self" type="application/rss+xml" />
-    <pubDate>Sun, 03 Dec 2017 21:49:26 -0500</pubDate>
-    <lastBuildDate>Sun, 03 Dec 2017 21:49:26 -0500</lastBuildDate>
+    <pubDate>Sun, 05 May 2019 22:47:57 -0400</pubDate>
+    <lastBuildDate>Sun, 05 May 2019 22:47:57 -0400</lastBuildDate>
     <generator>Jekyll v3.5.1</generator>
     
       <item>
@@ -29,7 +29,7 @@ generated from &lt;script type=&quot;math/tex&quot;&gt;z&lt;/script&gt;) along w
 This corresponds to the following simple graphical model
 &lt;script type=&quot;math/tex&quot;&gt;z \rightarrow x&lt;/script&gt;&lt;/p&gt;
 
-&lt;h4 id=&quot;learning-in-a-latent-variable-model&quot;&gt;Learning in a latent variable model&lt;/h4&gt;
+&lt;h2 id=&quot;learning-in-a-latent-variable-model&quot;&gt;Learning in a latent variable model&lt;/h2&gt;
 
 &lt;p&gt;Our purpose in such a model is to learn the generative process, i.e.,
 &lt;script type=&quot;math/tex&quot;&gt;p(x|z)&lt;/script&gt; (we assume &lt;script type=&quot;math/tex&quot;&gt;p(z)&lt;/script&gt; is known). A good &lt;script type=&quot;math/tex&quot;&gt;p(x|z)&lt;/script&gt; would assign high
@@ -44,7 +44,7 @@ optimization problem&lt;/p&gt;
 optimization problem because it involves a possibly intractable integral
 over &lt;script type=&quot;math/tex&quot;&gt;z&lt;/script&gt;.&lt;/p&gt;
 
-&lt;h4 id=&quot;posterior-inference-in-a-latent-variable-model&quot;&gt;Posterior inference in a latent variable model&lt;/h4&gt;
+&lt;h2 id=&quot;posterior-inference-in-a-latent-variable-model&quot;&gt;Posterior inference in a latent variable model&lt;/h2&gt;
 
 &lt;p&gt;For the moment, let us set aside this learning problem and focus on a
 different one: posterior inference of &lt;script type=&quot;math/tex&quot;&gt;p(z|x)&lt;/script&gt;. As we will see shortly,
@@ -95,7 +95,7 @@ following optimization problem&lt;/p&gt;
 
 &lt;script type=&quot;math/tex; mode=display&quot;&gt;\max_{\phi}\,\, \mathcal{L}(\phi)&lt;/script&gt;
 
-&lt;h4 id=&quot;back-to-the-learning-problem&quot;&gt;Back to the learning problem&lt;/h4&gt;
+&lt;h2 id=&quot;back-to-the-learning-problem&quot;&gt;Back to the learning problem&lt;/h2&gt;
 
 &lt;p&gt;The above derivation also suggests a way for learning the generative
 model &lt;script type=&quot;math/tex&quot;&gt;p(x|z)&lt;/script&gt;. We see that &lt;script type=&quot;math/tex&quot;&gt;\mathcal{L}(\phi)&lt;/script&gt; is in fact a lower bound
@@ -128,7 +128,7 @@ be equivalent to maximizing &lt;script type=&quot;math/tex&quot;&gt;p(x)&lt;/scr
                               &amp;= \mathbb{E}_{q}\left[\log \frac{p(z) p_{\theta}(x|z)}{q_{\phi}(z|x)}\right] \notag
 \end{aligned} %]]&gt;&lt;/script&gt;&lt;/p&gt;
 
-&lt;h4 id=&quot;a-brief-aside-on-expectation-maximization-em&quot;&gt;A brief aside on expectation maximization (EM)&lt;/h4&gt;
+&lt;h2 id=&quot;a-brief-aside-on-expectation-maximization-em&quot;&gt;A brief aside on expectation maximization (EM)&lt;/h2&gt;
 
 &lt;p&gt;EM can be seen as one particular strategy for solving the above
 maximization problem. In EM, the E step
@@ -139,7 +139,7 @@ respect to &lt;script type=&quot;math/tex&quot;&gt;\theta&lt;/script&gt;. In oth
 ascent procedure that maximizes &lt;script type=&quot;math/tex&quot;&gt;\mathcal{L}&lt;/script&gt; with respect to &lt;script type=&quot;math/tex&quot;&gt;\phi&lt;/script&gt; and
 &lt;script type=&quot;math/tex&quot;&gt;\theta&lt;/script&gt; in alternation.&lt;/p&gt;
 
-&lt;h4 id=&quot;solving-the-maximization-problem&quot;&gt;Solving the maximization problem&lt;/h4&gt;
+&lt;h2 id=&quot;solving-the-maximization-problem&quot;&gt;Solving the maximization problem&lt;/h2&gt;
 
 &lt;p&gt;One can use various techniques to solve the above maximization problem.
 Here, we will focus on stochastic gradient ascent since the variational
@@ -178,7 +178,7 @@ key contribution of the variational autoencoder is a much more efficient
 estimate for &lt;script type=&quot;math/tex&quot;&gt;\nabla_{\phi} \mathcal{L}(\theta, \phi)&lt;/script&gt; that relies on
 what is called the &lt;em&gt;reparameterization trick&lt;/em&gt;.&lt;/p&gt;
 
-&lt;h4 id=&quot;reparameterization-trick&quot;&gt;Reparameterization trick&lt;/h4&gt;
+&lt;h2 id=&quot;reparameterization-trick&quot;&gt;Reparameterization trick&lt;/h2&gt;
 
 &lt;p&gt;We would like to estimate the gradient of an expectation of the form
 &lt;script type=&quot;math/tex&quot;&gt;\mathbb{E}_{q_{\phi}(z|x)}[f(z)]&lt;/script&gt;. The problem is that the gradient
@@ -222,7 +222,7 @@ several strategies). We will see an example for the multivariate
 Gaussian distribution below when we talk about the variational
 autoencoder.&lt;/p&gt;
 
-&lt;h4 id=&quot;variational-autoencoder-va&quot;&gt;Variational Autoencoder (VA)&lt;/h4&gt;
+&lt;h2 id=&quot;variational-autoencoder-va&quot;&gt;Variational Autoencoder (VA)&lt;/h2&gt;
 
 &lt;p&gt;The above discussion of latent variable models is general, and the
 variational approach outlined above can be applied to any latent
@@ -327,7 +327,7 @@ order to learn &lt;script type=&quot;math/tex&quot;&gt;\theta&lt;/script&gt; and
 above expression and use these in a stochastic gradient-ascent
 procedure.&lt;/p&gt;
 
-&lt;h4 id=&quot;an-example-application&quot;&gt;An example application&lt;/h4&gt;
+&lt;h2 id=&quot;an-example-application&quot;&gt;An example application&lt;/h2&gt;
 
 &lt;p&gt;As an example application, we train a variational autoencoder on the
 handwritten digits dataset MNIST. We use multilayer perceptrons with one
@@ -347,9 +347,9 @@ digits (compare to Fig4b in the original paper&lt;sup id=&quot;fnref:1:2&quot;&g
 
 &lt;p style=&quot;margin-left: auto; margin-right: auto; text-align: center;&quot;&gt;&lt;img src=&quot;/img/VariationalAutoencoder4b.png&quot; alt=&quot;An illustration of the learned latent space for MNIST dataset)&quot; width=&quot;400px&quot; /&gt;&lt;/p&gt;
 
-&lt;h3 id=&quot;appendix&quot;&gt;Appendix&lt;/h3&gt;
+&lt;h1 id=&quot;appendix&quot;&gt;Appendix&lt;/h1&gt;
 
-&lt;h4 id=&quot;estimating-nabla_phi-mathbbe_q_phifz&quot;&gt;Estimating &lt;script type=&quot;math/tex&quot;&gt;\nabla_{\phi} \mathbb{E}_{q_{\phi}}[f(z)]&lt;/script&gt;&lt;/h4&gt;
+&lt;h2 id=&quot;estimating-nabla_phi-mathbbe_q_phifz&quot;&gt;Estimating &lt;script type=&quot;math/tex&quot;&gt;\nabla_{\phi} \mathbb{E}_{q_{\phi}}[f(z)]&lt;/script&gt;&lt;/h2&gt;
 
 &lt;p&gt;One common approach to estimating the gradient of such expectations is
 to make use of the identity
@@ -370,7 +370,7 @@ form an unbiased Monte Carlo estimate of the gradient of
 &lt;script type=&quot;math/tex&quot;&gt;\mathcal{L}(\theta, \phi)&lt;/script&gt; with respect to &lt;script type=&quot;math/tex&quot;&gt;\phi&lt;/script&gt; using this estimator.
 However, in practice it exhibits too high variance to be useful.&lt;/p&gt;
 
-&lt;h4 id=&quot;bibliography&quot;&gt;Bibliography&lt;/h4&gt;
+&lt;h2 id=&quot;bibliography&quot;&gt;Bibliography&lt;/h2&gt;
 &lt;div class=&quot;footnotes&quot;&gt;
   &lt;ol&gt;
     &lt;li id=&quot;fn:1&quot;&gt;
