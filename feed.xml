@@ -6,8 +6,8 @@
 </description>
     <link>http://gokererdogan.github.io/</link>
     <atom:link href="http://gokererdogan.github.io/feed.xml" rel="self" type="application/rss+xml" />
-    <pubDate>Tue, 03 Sep 2019 09:52:31 -0400</pubDate>
-    <lastBuildDate>Tue, 03 Sep 2019 09:52:31 -0400</lastBuildDate>
+    <pubDate>Wed, 04 Dec 2019 11:14:11 -0500</pubDate>
+    <lastBuildDate>Wed, 04 Dec 2019 11:14:11 -0500</lastBuildDate>
     <generator>Jekyll v3.5.1</generator>
     
       <item>
@@ -1233,7 +1233,7 @@ The other search problem you can find in source code is yet another famous probl
 
 &lt;p&gt;As usual, all source code is implemented with &lt;a href=&quot;http://www.python.org/download/releases/3.1/&quot;&gt;Python 3.1&lt;/a&gt; and I have used &lt;a href=&quot;http://www.tcl.tk/&quot;&gt;Tk&lt;/a&gt; for GUI programming.&lt;br /&gt;
 I’d be happy to hear your questions, comments &amp;amp; suggestions.&lt;br /&gt;
-Source Code &lt;a href=&quot;/files/AIAMA_C4.zip&quot;&gt;Download&lt;/a&gt;&lt;/p&gt;
+&lt;a href=&quot;https://github.com/gokererdogan/aiama&quot;&gt;Source Code&lt;/a&gt;&lt;/p&gt;
 
 </description>
         <pubDate>Fri, 11 Feb 2011 08:14:36 -0500</pubDate>
@@ -1473,7 +1473,7 @@ State: 0M 0C |-B| 3M 3C, Depth: 11, Path Cost: 11, Applied Operator: Move 1 M 1 
 
 &lt;p&gt;You can also find definition of a &lt;a href=&quot;http://en.wikipedia.org/wiki/Verbal_arithmetic&quot;&gt;cryptarithmetic problem&lt;/a&gt; given in the book in source code.&lt;/p&gt;
 
-&lt;p&gt;&lt;a href=&quot;/files/AIAMA_C3.zip&quot;&gt;Source Code&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a href=&quot;https://github.com/gokererdogan/aiama&quot;&gt;Source Code&lt;/a&gt;&lt;/p&gt;
 
 &lt;p&gt;Feel free to contact me for any bug reports, suggestions and I’d be glad to answer your questions.&lt;/p&gt;
 </description>
