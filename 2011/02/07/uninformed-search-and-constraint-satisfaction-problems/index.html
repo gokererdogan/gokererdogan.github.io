@@ -117,7 +117,7 @@
 
 <p>For example, for the famous <a href="http://en.wikipedia.org/wiki/Missionaries_and_cannibals_problem">missionaries and cannibals problem</a>, after defining necessary classes and methods following piece of code solves it with breadth-first search. (Details of the implementation can be found in the source code at the end of post)</p>
 
-<figure class="highlight"><pre><code class="language-python" data-lang="python"><table style="border-spacing: 0"><tbody><tr><td class="gutter gl" style="text-align: right"><pre class="lineno">1
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
 2
 3
 4
@@ -137,32 +137,33 @@
 18
 19
 20
-21</pre></td><td class="code"><pre><span class="s">"""
+21
+</pre></td><td class="code"><pre><span class="s">"""
 Problem Definition
 """</span>
-<span class="c"># operators</span>
-<span class="n">operators</span> <span class="o">=</span> <span class="p">[]</span>
-<span class="n">operators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Search</span><span class="o">.</span><span class="n">Operator</span><span class="p">(</span><span class="s">"Move 2 M"</span><span class="p">,</span> <span class="n">Move2MAcross</span><span class="p">))</span>
-<span class="n">operators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Search</span><span class="o">.</span><span class="n">Operator</span><span class="p">(</span><span class="s">"Move 1 M"</span><span class="p">,</span> <span class="n">Move1MAcross</span><span class="p">))</span>
-<span class="n">operators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Search</span><span class="o">.</span><span class="n">Operator</span><span class="p">(</span><span class="s">"Move 2 C"</span><span class="p">,</span> <span class="n">Move2CAcross</span><span class="p">))</span>
-<span class="n">operators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Search</span><span class="o">.</span><span class="n">Operator</span><span class="p">(</span><span class="s">"Move 1 C"</span><span class="p">,</span> <span class="n">Move1CAcross</span><span class="p">))</span>
-<span class="n">operators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Search</span><span class="o">.</span><span class="n">Operator</span><span class="p">(</span><span class="s">"Move 1 M 1 C"</span><span class="p">,</span> <span class="n">Move1M1CAcross</span><span class="p">))</span>
+<span class="c1"># operators
+</span><span class="n">operators</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">operators</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">Search</span><span class="p">.</span><span class="n">Operator</span><span class="p">(</span><span class="s">"Move 2 M"</span><span class="p">,</span> <span class="n">Move2MAcross</span><span class="p">))</span>
+<span class="n">operators</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">Search</span><span class="p">.</span><span class="n">Operator</span><span class="p">(</span><span class="s">"Move 1 M"</span><span class="p">,</span> <span class="n">Move1MAcross</span><span class="p">))</span>
+<span class="n">operators</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">Search</span><span class="p">.</span><span class="n">Operator</span><span class="p">(</span><span class="s">"Move 2 C"</span><span class="p">,</span> <span class="n">Move2CAcross</span><span class="p">))</span>
+<span class="n">operators</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">Search</span><span class="p">.</span><span class="n">Operator</span><span class="p">(</span><span class="s">"Move 1 C"</span><span class="p">,</span> <span class="n">Move1CAcross</span><span class="p">))</span>
+<span class="n">operators</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">Search</span><span class="p">.</span><span class="n">Operator</span><span class="p">(</span><span class="s">"Move 1 M 1 C"</span><span class="p">,</span> <span class="n">Move1M1CAcross</span><span class="p">))</span>
 
-<span class="c"># create initial state</span>
-<span class="n">initialState</span> <span class="o">=</span> <span class="n">MCState</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="c1"># create initial state
+</span><span class="n">initialState</span> <span class="o">=</span> <span class="n">MCState</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
-<span class="c"># define problem</span>
-<span class="n">MCProblem</span> <span class="o">=</span> <span class="n">Search</span><span class="o">.</span><span class="n">SearchProblem</span><span class="p">(</span><span class="n">initialState</span><span class="p">,</span> <span class="n">operators</span><span class="p">,</span> <span class="n">MCGoalTest</span><span class="p">)</span>
+<span class="c1"># define problem
+</span><span class="n">MCProblem</span> <span class="o">=</span> <span class="n">Search</span><span class="p">.</span><span class="n">SearchProblem</span><span class="p">(</span><span class="n">initialState</span><span class="p">,</span> <span class="n">operators</span><span class="p">,</span> <span class="n">MCGoalTest</span><span class="p">)</span>
 
-<span class="n">node</span> <span class="o">=</span> <span class="n">MCProblem</span><span class="o">.</span><span class="n">BreadthFirstSearch</span><span class="p">()</span>
-<span class="n">solution</span> <span class="o">=</span> <span class="n">MCProblem</span><span class="o">.</span><span class="n">GetSolutionPath</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+<span class="n">node</span> <span class="o">=</span> <span class="n">MCProblem</span><span class="p">.</span><span class="n">BreadthFirstSearch</span><span class="p">()</span>
+<span class="n">solution</span> <span class="o">=</span> <span class="n">MCProblem</span><span class="p">.</span><span class="n">GetSolutionPath</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
 <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">solution</span><span class="p">:</span>
-    <span class="k">print</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="w">
-</span></pre></td></tr></tbody></table></code></pre></figure>
+    <span class="k">print</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>Solution found;</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code>State: 3M 3C |B-| 0M 0C, Depth: 0, Path Cost: 0, Applied Operator: None
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>State: 3M 3C |B-| 0M 0C, Depth: 0, Path Cost: 0, Applied Operator: None
 State: 3M 1C |-B| 0M 2C, Depth: 1, Path Cost: 1, Applied Operator: Move 2 C
 State: 3M 2C |B-| 0M 1C, Depth: 2, Path Cost: 2, Applied Operator: Move 1 C
 State: 3M 0C |-B| 0M 3C, Depth: 3, Path Cost: 3, Applied Operator: Move 2 C
@@ -174,8 +175,7 @@ State: 0M 3C |B-| 3M 0C, Depth: 8, Path Cost: 8, Applied Operator: Move 1 C
 State: 0M 1C |-B| 3M 2C, Depth: 9, Path Cost: 9, Applied Operator: Move 2 C
 State: 1M 1C |B-| 2M 2C, Depth: 10, Path Cost: 10, Applied Operator: Move 1 M
 State: 0M 0C |-B| 3M 3C, Depth: 11, Path Cost: 11, Applied Operator: Move 1 M 1 C
-</code></pre>
-</div>
+</code></pre></div></div>
 
 <p>I have implemented necessary state classes, operators and goal tests for the following problems; chain problem (exercise 3.15), sequence prediction problem (exercise 3.16) and <a href="http://en.wikipedia.org/wiki/Fifteen_puzzle">8 Puzzle</a>.</p>
 
@@ -183,7 +183,7 @@ State: 0M 0C |-B| 3M 3C, Depth: 11, Path Cost: 11, Applied Operator: Move 1 M 1 
 
 <p>For 8-queens problem, following code implements the constraints, forward checking function, defines a CSP and solves it.</p>
 
-<figure class="highlight"><pre><code class="language-python" data-lang="python"><table style="border-spacing: 0"><tbody><tr><td class="gutter gl" style="text-align: right"><pre class="lineno">1
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
 2
 3
 4
@@ -228,19 +228,20 @@ State: 0M 0C |-B| 3M 3C, Depth: 11, Path Cost: 11, Applied Operator: Move 1 M 1 
 43
 44
 45
-46</pre></td><td class="code"><pre><span class="kn">import</span> <span class="nn">itertools</span>
+46
+</pre></td><td class="code"><pre><span class="kn">import</span> <span class="nn">itertools</span>
 <span class="kn">import</span> <span class="nn">CSP</span>
 
 <span class="k">def</span> <span class="nf">CheckConstraints</span><span class="p">(</span><span class="n">state</span><span class="p">):</span>
-    <span class="c"># for every pair of queen</span>
-    <span class="k">for</span> <span class="n">s1</span><span class="p">,</span> <span class="n">s2</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">combinations</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">assignments</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="mi">2</span><span class="p">):</span>
-        <span class="c">#if 2 queens are on the same column</span>
-        <span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="n">assignments</span><span class="p">[</span><span class="n">s1</span><span class="p">]</span> <span class="o">==</span> <span class="n">state</span><span class="o">.</span><span class="n">assignments</span><span class="p">[</span><span class="n">s2</span><span class="p">]:</span>
+    <span class="c1"># for every pair of queen
+</span>    <span class="k">for</span> <span class="n">s1</span><span class="p">,</span> <span class="n">s2</span> <span class="ow">in</span> <span class="n">itertools</span><span class="p">.</span><span class="n">combinations</span><span class="p">(</span><span class="n">state</span><span class="p">.</span><span class="n">assignments</span><span class="p">.</span><span class="n">keys</span><span class="p">(),</span> <span class="mi">2</span><span class="p">):</span>
+        <span class="c1">#if 2 queens are on the same column
+</span>        <span class="k">if</span> <span class="n">state</span><span class="p">.</span><span class="n">assignments</span><span class="p">[</span><span class="n">s1</span><span class="p">]</span> <span class="o">==</span> <span class="n">state</span><span class="p">.</span><span class="n">assignments</span><span class="p">[</span><span class="n">s2</span><span class="p">]:</span>
             <span class="k">return</span> <span class="bp">False</span>
-        <span class="c">#if 2 queens are attacking each other diagonally</span>
-        <span class="n">rowDiff</span> <span class="o">=</span> <span class="nb">ord</span><span class="p">(</span><span class="n">s2</span><span class="p">)</span><span class="o">-</span><span class="nb">ord</span><span class="p">(</span><span class="n">s1</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="n">assignments</span><span class="p">[</span><span class="n">s1</span><span class="p">]</span> <span class="o">+</span> <span class="n">rowDiff</span> <span class="o">==</span> <span class="n">state</span><span class="o">.</span><span class="n">assignments</span><span class="p">[</span><span class="n">s2</span><span class="p">]</span> <span class="ow">or</span> 
-           <span class="n">state</span><span class="o">.</span><span class="n">assignments</span><span class="p">[</span><span class="n">s1</span><span class="p">]</span> <span class="o">-</span> <span class="n">rowDiff</span> <span class="o">==</span> <span class="n">state</span><span class="o">.</span><span class="n">assignments</span><span class="p">[</span><span class="n">s2</span><span class="p">]:</span>
+        <span class="c1">#if 2 queens are attacking each other diagonally
+</span>        <span class="n">rowDiff</span> <span class="o">=</span> <span class="nb">ord</span><span class="p">(</span><span class="n">s2</span><span class="p">)</span><span class="o">-</span><span class="nb">ord</span><span class="p">(</span><span class="n">s1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">state</span><span class="p">.</span><span class="n">assignments</span><span class="p">[</span><span class="n">s1</span><span class="p">]</span> <span class="o">+</span> <span class="n">rowDiff</span> <span class="o">==</span> <span class="n">state</span><span class="p">.</span><span class="n">assignments</span><span class="p">[</span><span class="n">s2</span><span class="p">]</span> <span class="ow">or</span> 
+           <span class="n">state</span><span class="p">.</span><span class="n">assignments</span><span class="p">[</span><span class="n">s1</span><span class="p">]</span> <span class="o">-</span> <span class="n">rowDiff</span> <span class="o">==</span> <span class="n">state</span><span class="p">.</span><span class="n">assignments</span><span class="p">[</span><span class="n">s2</span><span class="p">]:</span>
             <span class="k">return</span> <span class="bp">False</span>
     <span class="k">return</span> <span class="bp">True</span>
 
@@ -248,39 +249,38 @@ State: 0M 0C |-B| 3M 3C, Depth: 11, Path Cost: 11, Applied Operator: Move 1 M 1 
     <span class="s">"""
     Return a dictionary of illegal values for each unassigned variable
     """</span>
-    <span class="c"># find unassigned variables</span>
-    <span class="n">unassignedVars</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">varList</span><span class="p">)</span>
-    <span class="p">[</span> <span class="n">unassignedVars</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">state</span><span class="o">.</span><span class="n">assignments</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="p">]</span>
-    <span class="c"># nextVariable is being assigned right now it is not an unassigned variable</span>
-    <span class="n">unassignedVars</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">nextVariable</span><span class="p">)</span>
-    <span class="c"># dictionary that holds values to be removed for each variable</span>
-    <span class="n">removeVals</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="c"># for every unassigned variable, construct a list of values to be removed</span>
-    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">unassignedVars</span><span class="p">:</span>
+    <span class="c1"># find unassigned variables
+</span>    <span class="n">unassignedVars</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">state</span><span class="p">.</span><span class="n">varList</span><span class="p">)</span>
+    <span class="p">[</span> <span class="n">unassignedVars</span><span class="p">.</span><span class="n">remove</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">state</span><span class="p">.</span><span class="n">assignments</span><span class="p">.</span><span class="n">keys</span><span class="p">()</span> <span class="p">]</span>
+    <span class="c1"># nextVariable is being assigned right now it is not an unassigned variable
+</span>    <span class="n">unassignedVars</span><span class="p">.</span><span class="n">remove</span><span class="p">(</span><span class="n">state</span><span class="p">.</span><span class="n">nextVariable</span><span class="p">)</span>
+    <span class="c1"># dictionary that holds values to be removed for each variable
+</span>    <span class="n">removeVals</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="c1"># for every unassigned variable, construct a list of values to be removed
+</span>    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">unassignedVars</span><span class="p">:</span>
         <span class="n">vals</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="c"># two queens can't be on same column</span>
-        <span class="n">vals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-        <span class="c"># add diagonal positions if they are inside boundaries of chess board</span>
-        <span class="n">rowDiff</span> <span class="o">=</span> <span class="nb">ord</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">-</span><span class="nb">ord</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">nextVariable</span><span class="p">)</span>
+        <span class="c1"># two queens can't be on same column
+</span>        <span class="n">vals</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+        <span class="c1"># add diagonal positions if they are inside boundaries of chess board
+</span>        <span class="n">rowDiff</span> <span class="o">=</span> <span class="nb">ord</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">-</span><span class="nb">ord</span><span class="p">(</span><span class="n">state</span><span class="p">.</span><span class="n">nextVariable</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">val</span><span class="o">+</span><span class="n">rowDiff</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">val</span><span class="o">+</span><span class="n">rowDiff</span> <span class="o">&lt;=</span> <span class="mi">8</span><span class="p">:</span>
-            <span class="n">vals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="o">+</span><span class="n">rowDiff</span><span class="p">)</span>
+            <span class="n">vals</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="o">+</span><span class="n">rowDiff</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">val</span><span class="o">-</span><span class="n">rowDiff</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">val</span><span class="o">-</span><span class="n">rowDiff</span> <span class="o">&lt;=</span> <span class="mi">8</span><span class="p">:</span>
-            <span class="n">vals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="o">-</span><span class="n">rowDiff</span><span class="p">)</span>
+            <span class="n">vals</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="o">-</span><span class="n">rowDiff</span><span class="p">)</span>
         <span class="n">removeVals</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">vals</span>
     <span class="k">return</span> <span class="n">removeVals</span>
 
 <span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">'__main__'</span><span class="p">:</span>
     <span class="n">varsAndDomains</span> <span class="o">=</span> <span class="p">{(</span><span class="s">'A'</span><span class="p">,</span><span class="s">'B'</span><span class="p">,</span><span class="s">'C'</span><span class="p">,</span><span class="s">'D'</span><span class="p">,</span><span class="s">'E'</span><span class="p">,</span><span class="s">'F'</span><span class="p">,</span><span class="s">'G'</span><span class="p">,</span><span class="s">'H'</span><span class="p">):[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">8</span><span class="p">]}</span>
-    <span class="n">csp</span> <span class="o">=</span> <span class="n">CSP</span><span class="o">.</span><span class="n">CSP</span><span class="p">(</span><span class="n">varsAndDomains</span><span class="p">,</span> <span class="p">[</span><span class="n">CheckConstraints</span><span class="p">],</span> <span class="n">ForwardChecking</span><span class="p">)</span>
-    <span class="n">node</span> <span class="o">=</span> <span class="n">csp</span><span class="o">.</span><span class="n">Solve</span><span class="p">()</span>
-    <span class="k">print</span><span class="p">(</span><span class="n">node</span><span class="p">)</span><span class="w">
-</span></pre></td></tr></tbody></table></code></pre></figure>
+    <span class="n">csp</span> <span class="o">=</span> <span class="n">CSP</span><span class="p">.</span><span class="n">CSP</span><span class="p">(</span><span class="n">varsAndDomains</span><span class="p">,</span> <span class="p">[</span><span class="n">CheckConstraints</span><span class="p">],</span> <span class="n">ForwardChecking</span><span class="p">)</span>
+    <span class="n">node</span> <span class="o">=</span> <span class="n">csp</span><span class="p">.</span><span class="n">Solve</span><span class="p">()</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>Solution found for the problem (each letter corresponds to a row on chess board and values are columns where queen is located);</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code>State: {'A': 1, 'C': 8, 'B': 5, 'E': 3, 'D': 6, 'G': 2, 'F': 7, 'H': 4}, Depth: 8, Path Cost: 8, Applied Operator: Assign Value
-</code></pre>
-</div>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>State: {'A': 1, 'C': 8, 'B': 5, 'E': 3, 'D': 6, 'G': 2, 'F': 7, 'H': 4}, Depth: 8, Path Cost: 8, Applied Operator: Assign Value
+</code></pre></div></div>
 
 <p>You can also find definition of a <a href="http://en.wikipedia.org/wiki/Verbal_arithmetic">cryptarithmetic problem</a> given in the book in source code.</p>
 
@@ -292,7 +292,7 @@ State: 0M 0C |-B| 3M 3C, Depth: 11, Path Cost: 11, Applied Operator: Move 1 M 1 
 
 </div>
 <script type="text/javascript"
-    src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
 </script>
 
       </div>

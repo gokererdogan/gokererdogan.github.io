@@ -98,31 +98,31 @@
 
 <p>First, I will present a formal definition of MoE architecture and update equations for training such a model. Afterwards, I will provide MoE implementation in MATLAB and illustrate it on a synthetic regression example.</p>
 
-<p><script type="math/tex">X = \lbrace x, r \rbrace</script> where <script type="math/tex">x</script> is a <script type="math/tex">d</script> x <script type="math/tex">N</script> matrix where each row vector contains input values and <script type="math/tex">r</script> is a <script type="math/tex">K</script> x <script type="math/tex">N</script> matrix where each row is a vector denoting which class a sample belongs to in classification problems or output values for each output dimension in case of regression.</p>
+<p>\(X = \lbrace x, r \rbrace\) where \(x\) is a \(d\) x \(N\) matrix where each row vector contains input values and \(r\) is a \(K\) x \(N\) matrix where each row is a vector denoting which class a sample belongs to in classification problems or output values for each output dimension in case of regression.</p>
 
-<p><script type="math/tex">j=1...D</script> inputs, <script type="math/tex">i=1...K</script> outputs, <script type="math/tex">h=1...H</script> experts, <script type="math/tex">\eta</script> learning rate<br />
-Linear fit of expert h for output i: <script type="math/tex">w_{ih} = v_{ih}^{T} x</script><br />
-Weight vector of each linear model: This vector is of size D+1 since we add a bias unit. <script type="math/tex">v_{ih}</script><br />
-Local region center for expert h: <script type="math/tex">m_h</script> is a D-vector.<br />
-Gating Model, weight of expert h: Here dot product is used. <script type="math/tex">g_h = \frac{ exp(m_h^T x) }{\Sigma_k exp(m_k^T x)}</script></p>
+<p>\(j=1...D\) inputs, \(i=1...K\) outputs, \(h=1...H\) experts, \(\eta\) learning rate<br />
+Linear fit of expert h for output i: \(w_{ih} = v_{ih}^{T} x\)<br />
+Weight vector of each linear model: This vector is of size D+1 since we add a bias unit. \(v_{ih}\)<br />
+Local region center for expert h: \(m_h\) is a D-vector.<br />
+Gating Model, weight of expert h: Here dot product is used. \(g_h = \frac{ exp(m_h^T x) }{\Sigma_k exp(m_k^T x)}\)</p>
 
 <p><strong>Regression</strong>:
-Output: <script type="math/tex">y_i = \Sigma_{h=1}^{H} w_{ih} g_h</script><br />
+Output: \(y_i = \Sigma_{h=1}^{H} w_{ih} g_h\)<br />
 <strong>Classification</strong>:
-Output: <script type="math/tex">y_i</script> are converted to posterior probabilities through softmax function. <script type="math/tex">o_i = \frac{exp(y_i)}{\Sigma_k exp(y_k)}</script></p>
+Output: \(y_i\) are converted to posterior probabilities through softmax function. \(o_i = \frac{exp(y_i)}{\Sigma_k exp(y_k)}\)</p>
 
 <p>Update equations for regression and classification are derived using gradient ascent. In regression, sum of squares of error is minimized where in classification likelihood of a training instance is maximized. When derived, update equations for regression and classification turn out to be same and given as follows for two types of MoE.</p>
 
 <p><strong>Cooperative MoE</strong>
-<script type="math/tex">\Delta v_{ih} = \eta (r_i - o_i) g_h x</script>
-<script type="math/tex">\Delta m_h = \eta (r_i - o_i) (w_{ih} - y_i) g_h x</script>
-( <script type="math/tex">o_i = y_i</script> for regression )</p>
+\(\Delta v_{ih} = \eta (r_i - o_i) g_h x\)
+\(\Delta m_h = \eta (r_i - o_i) (w_{ih} - y_i) g_h x\)
+( \(o_i = y_i\) for regression )</p>
 
 <p><strong>Competitive MoE</strong>
-<script type="math/tex">\Delta v_{ih} = \eta f_h (r_i - y_{ih}) x</script>
-<script type="math/tex">\Delta m_h = \eta (f_h - g_h) x</script><br />
-For classification, <script type="math/tex">f_h = \frac{ g_h exp ( \Sigma_i r_i log y_{ih} )}{\Sigma_k g_k exp ( \Sigma_i r_i log y_{ik} )}</script> <script type="math/tex">y_{ih} = \frac{exp(w_{ih}}{\Sigma_k exp(w_{kh})}</script><br />
-For regression, <script type="math/tex">f_h = \frac{ g_h exp ( 0.5 \Sigma_i (r_i - y_{ih})^2 )}{\Sigma_k g_k exp ( 0.5 \Sigma_i (r_i - y_{ik})^2 )}</script> <script type="math/tex">y_{ih} = w_{ih}</script></p>
+\(\Delta v_{ih} = \eta f_h (r_i - y_{ih}) x\)
+\(\Delta m_h = \eta (f_h - g_h) x\)<br />
+For classification, \(f_h = \frac{ g_h exp ( \Sigma_i r_i log y_{ih} )}{\Sigma_k g_k exp ( \Sigma_i r_i log y_{ik} )}\) \(y_{ih} = \frac{exp(w_{ih}}{\Sigma_k exp(w_{kh})}\)<br />
+For regression, \(f_h = \frac{ g_h exp ( 0.5 \Sigma_i (r_i - y_{ih})^2 )}{\Sigma_k g_k exp ( 0.5 \Sigma_i (r_i - y_{ik})^2 )}\) \(y_{ih} = w_{ih}\)</p>
 
 <p>For testing my implementation I have generated synthetic regression and classification problems. Below can be seen plot of regression dataset. I have generated points from two linear models by using first linear model in first half of space and second model in the rest also adding some Gaussian noise to samples.</p>
 
@@ -130,16 +130,17 @@ For regression, <script type="math/tex">f_h = \frac{ g_h exp ( 0.5 \Sigma_i (r_i
 
 <p>Two functions are implemented for realizing MoE architecture where first one TrainMixtureOfExperts is used to train model and TestMixtureOfExperts is utilized for testing instances on trained MoE network. Below code trains the network on training data and reports error for validation set.</p>
 
-<figure class="highlight"><pre><code class="language-matlab" data-lang="matlab"><table style="border-spacing: 0"><tbody><tr><td class="gutter gl" style="text-align: right"><pre class="lineno">1
+<figure class="highlight"><pre><code class="language-matlab" data-lang="matlab"><table class="rouge-table"><tbody><tr><td class="gutter gl"><pre class="lineno">1
 2
 3
 4
-5</pre></td><td class="code"><pre><span class="p">[</span><span class="n">v</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="n">TrainMixtureOfExperts</span><span class="p">(</span><span class="s1">'regression'</span><span class="p">,</span> <span class="s1">'competitive'</span><span class="p">,</span> <span class="n">tx2</span><span class="p">,</span> <span class="n">tr2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.99</span><span class="p">);</span>
+5
+</pre></td><td class="code"><pre><span class="p">[</span><span class="n">v</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="n">TrainMixtureOfExperts</span><span class="p">(</span><span class="s1">'regression'</span><span class="p">,</span> <span class="s1">'competitive'</span><span class="p">,</span> <span class="n">tx2</span><span class="p">,</span> <span class="n">tr2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.99</span><span class="p">);</span>
 <span class="p">[</span><span class="n">err</span><span class="p">,</span> <span class="n">cr</span><span class="p">]</span> <span class="o">=</span> <span class="n">TestMixtureOfExperts</span><span class="p">(</span><span class="s1">'regression'</span><span class="p">,</span> <span class="n">vx2</span><span class="p">,</span> <span class="n">vr2</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">m</span><span class="p">);</span>
 <span class="nb">plot</span><span class="p">(</span><span class="n">vx2</span><span class="p">,</span> <span class="n">cr</span><span class="p">,</span> <span class="s1">'xr'</span><span class="p">)</span>
 <span class="nb">hold</span> <span class="n">on</span>
-<span class="nb">plot</span><span class="p">(</span><span class="n">vx2</span><span class="p">,</span> <span class="n">vr2</span><span class="p">,</span> <span class="s1">'ob'</span><span class="p">)</span><span class="w">
-</span></pre></td></tr></tbody></table></code></pre></figure>
+<span class="nb">plot</span><span class="p">(</span><span class="n">vx2</span><span class="p">,</span> <span class="n">vr2</span><span class="p">,</span> <span class="s1">'ob'</span><span class="p">)</span>
+</pre></td></tr></tbody></table></code></pre></figure>
 
 <p>It can also be seen in the below plot that MoE model learns the underlying model that generates quite successfully by analyzing the predicted outputs on given outputs visually.</p>
 
@@ -152,7 +153,7 @@ For regression, <script type="math/tex">f_h = \frac{ g_h exp ( 0.5 \Sigma_i (r_i
 
 </div>
 <script type="text/javascript"
-    src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
 </script>
 
       </div>
