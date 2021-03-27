@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Word game!</title>
+    <meta name="robots" content="noindex">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+</head>
+<body>
+<div class="w3-auto">
+
+    <div class="w3-container w3-card w3-light-blue w3-text-white w3-center">
+        <h1>Word game!</h1>
+    </div>
+
+    <div class="w3-auto">
+        <div class="w3-content w3-row w3-text-black" style="width: 80%">
+            <div class="w3-row w3-medium w3-center" style="padding-top: 3%">
+                Filter by: <select name="filter_by" id="filter_by">
+                </select>
+                <select name="filter_val" id="filter_val">
+                </select>
+            </div>
+            <div class="w3-row w3-xlarge" style="width: 100%; padding-top: 5%; padding-bottom: 5%">
+                <div class="w3-col m2", style="float: left">
+                    Score: <span class="w3-text-black" id="score">0</span>
+                </div>
+                <div class="w3-col m8 w3-center w3-text-orange w3-xlarge">
+                    <div id="message"></div>
+                </div>
+                <div class="w3-rest m2 w3-large">
+                    <button id="next" class="w3-button w3-gray" style="float: right">Next</button>
+                </div>
+            </div>
+            <div class="w3-row">
+                <div class="w3-row w3-cell-row w3-padding w3-xlarge" style="width:100%; text-align: justify">
+                    <span id="sentence_begin"></span>
+                    <input id="word" style="border: none;border-bottom: 1px solid #ccc" type="text" placeholder="input word here">
+                    <span id="sentence_end"></span>
+                </div>
+                <div class="w3-row w3-small w3-text-gray w3-padding" id="source"></div>
+                <div class="w3-row w3-center" style="width:100%; padding-top: 5%">
+                    You found <span id="num_found">0</span> of <span id="num_all"></span> words.<br>
+                    <div class="w3-row">
+                        <div class="w3-panel w3-card w3-light-grey"><span id="found_answers" ></span></div>
+                    </div>
+                    <div class="w3-row">
+                        <div id="revealed_answers" class="w3-panel w3-card w3-pale-red"></div>
+                    </div>
+                </div>
+                <div class="w3-row w3-center" style="width:100%; padding-top: 5%">
+                    <button id="reveal" class="w3-button w3-gray">Reveal answers</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+        var all_questions;
+        var sel_questions;
+        var qid;
+        var q;
+        var answers;
+        var found_answers;
+        var dd_vals;
+        var subject_dd_vals;
+        var score = 0;
+        
+        answers_to_str = function(l){
+            return l.map(w => w==q["ground_truth"] ? "<b>"+w+"</b>" : w).join(", ");
+        }
+        
+	    check_guess = function(){
+	        var message = "";
+	        var message_color = "";
+		    var word = $("#word").val().toLowerCase();
+		    if (answers.includes(word)) {
+			    if (!found_answers.includes(word)) {
+			        var word_score = 1
+			        message = "Well done!"; 
+			        message_color = "green";
+
+			        if (word == q["ground_truth"]) {
+			            word_score = 3;
+				        message = "Congrats! Found the ground truth!";
+			        }
+		            score += word_score;
+			        found_answers.push(word);
+	                found_answers = found_answers.sort();
+	                answers_html = answers_to_str(found_answers);
+	                $("#found_answers").html("Found: " + answers_html);
+	                $("#score").text(score);
+	                $("#num_found").text(found_answers.length);
+		        }
+			    else {
+			        message = "Already found.";
+			        message_color = "gray";
+			    }
+		    }
+		    else {
+		        message = "Try again.";
+		        message_color = "red";
+            }
+
+            $("#message").css("color", message_color);
+		    $("#message").text(message);
+		    $("#message").show();
+		    $("#message").fadeOut(2000);
+		    $("#word").val("");
+	    }
+	    
+	    show_new_question = function(){
+	        qid = Math.floor(Math.random() * sel_questions.length);
+			q = sel_questions[qid];
+			    
+			q_parts = q["question"].split("[MASK]");
+			answers = q["answers"];
+			found_answers = new Array();
+	        $("#sentence_begin").text(q_parts[0]);
+			$("#sentence_end").text(q_parts[1]);
+			$("#num_all").text(answers.length);
+		    $("#num_found").text(found_answers.length);
+		    $("#source").text(q['source_info'] + ', qid: ' + q['id']);
+			$("#found_answers").html("");
+			$("#revealed_answers").html("");
+	    }
+	    
+	    reveal_answers = function(){
+	        rev_answers = answers.sort();
+	        rev_answers_html = answers_to_str(rev_answers);
+	        $("#revealed_answers").html('Answers: ' + rev_answers_html);
+	    }
+	    
+	    filter_questions = function(){
+	        filter_by = $("select#filter_by").val();
+	        source_ids = dd_vals[filter_by][$("select#filter_val").val()]["ids"];
+	        sel_questions = new Array();
+	        for (sid of source_ids){
+	            for (q of all_questions[sid]){
+	                sel_questions.push(q);
+	            }
+	        }
+	        
+	    }
+	    
+	    update_filter_values = function(){
+	        $("select#filter_val").empty();
+	        filter_by = $("select#filter_by").val();
+	        for ([i, dd_val] of dd_vals[filter_by].entries()){
+	            $("select#filter_val").append($("<option>")
+                        .val(i)
+                        .html(dd_val["text"])
+                );
+	        }
+	    }
+
+		$(document).ready(function(){
+			// create dropdowns
+            $.getJSON("data/dropdown.json", function(data) {
+			    dd_vals = data;
+			    for (key in dd_vals){
+			        $("select#filter_by").append($("<option>")
+                        .val(key)
+                        .html(key)
+                    );
+			    }
+			    update_filter_values();
+			    });
+
+			// read questions
+			$.getJSON("data/questions.json", function(data) {
+			    all_questions = data;
+			    filter_questions();
+			    show_new_question();
+			    });
+			    
+			$("#word").keypress(function(event) {
+				if (event.which == 13) {
+					check_guess();
+				}
+			});
+			
+			$("#next").click(function(){
+				show_new_question();
+			});
+			$("#reveal").click(function(){
+				reveal_answers();
+			});
+			$("select#filter_by").change(function(){
+				update_filter_values();
+			});
+			$("select#filter_val").change(function(){
+				filter_questions();
+				show_new_question();
+			});
+		});
+
+</script>
+</body>
+</html>
