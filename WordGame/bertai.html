@@ -9,13 +9,13 @@
 </head>
 <body>
 <div class="w3-auto">
-
-    <div class="w3-container w3-card w3-light-blue w3-text-white w3-center">
-        <h1>Word game!</h1>
+    <div class="w3-content w3-row w3-text-black" style="width: 60%">
+        <div class="w3-container w3-card w3-light-blue w3-text-white w3-center">
+            <h1>Word game!</h1>
+        </div>
     </div>
-
     <div class="w3-auto">
-        <div class="w3-content w3-row w3-text-black" style="width: 80%">
+        <div class="w3-content w3-row w3-text-black" style="width: 50%">
             <div class="w3-row w3-medium w3-center" style="padding-top: 3%">
                 Filter by: <select name="filter_by" id="filter_by">
                 </select>
@@ -153,6 +153,8 @@
                         .html(dd_val["text"])
                 );
 	        }
+	        // Select the last item in dropbox (i.e., default to After 1900 for year)
+	        $("select#filter_val").val(dd_vals[filter_by].length-1);
 	    }
 
 		$(document).ready(function(){
