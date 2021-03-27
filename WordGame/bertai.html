@@ -9,38 +9,40 @@
 </head>
 <body>
 <div class="w3-auto">
-    <div class="w3-content w3-row w3-text-black" style="width: 80%">
+    <div class="w3-content w3-row w3-text-black">
         <div class="w3-container w3-card w3-light-blue w3-text-white w3-center">
             <h1>Word game!</h1>
         </div>
     </div>
     <div class="w3-auto">
-        <div class="w3-content w3-row w3-text-black" style="width: 70%">
+        <div class="w3-content w3-row w3-text-black">
             <div class="w3-row w3-medium w3-center" style="padding-top: 3%">
                 Filter by: <select name="filter_by" id="filter_by">
                 </select>
                 <select name="filter_val" id="filter_val">
                 </select>
             </div>
-            <div class="w3-row w3-xlarge" style="width: 100%; padding-top: 5%; padding-bottom: 5%">
-                <div class="w3-col m2", style="float: left">
+            <div class="w3-row w3-xlarge" style="width: 100%; padding-top: 5%; padding-left: 3%; padding-right: 3%">
+                <div class="w3-half", style="float: left">
                     Score: <span class="w3-text-black" id="score">0</span>
                 </div>
-                <div class="w3-col m8 w3-center w3-text-orange w3-xlarge">
-                    <div id="message"></div>
-                </div>
-                <div class="w3-rest m2 w3-large">
+                <div class="w3-half w3-large">
                     <button id="next" class="w3-button w3-gray" style="float: right">Next</button>
                 </div>
             </div>
+            <div class="w3-row w3-xlarge" style="padding-bottom: 5%">
+                <div class="w3-col w3-center w3-text-orange w3-xlarge">
+                    <div id="message"></div>
+                </div>
+            </div
             <div class="w3-row">
-                <div class="w3-row w3-cell-row w3-padding w3-xlarge" style="width:100%; text-align: justify">
+                <div class="w3-row w3-cell-row w3-padding w3-xlarge" style="text-align: justify; padding-left: 3%; padding-right: 3%">
                     <span id="sentence_begin"></span>
                     <input id="word" style="border: none;border-bottom: 1px solid #ccc" type="text" placeholder="input word here">
                     <span id="sentence_end"></span>
                 </div>
                 <div class="w3-row w3-small w3-text-gray w3-padding" id="source"></div>
-                <div class="w3-row w3-center" style="width:100%; padding-top: 5%">
+                <div class="w3-row w3-center" style="padding-top: 5%">
                     You found <span id="num_found">0</span> of <span id="num_all"></span> words.<br>
                     <div class="w3-row">
                         <div class="w3-panel w3-card w3-light-grey"><span id="found_answers" ></span></div>
@@ -49,7 +51,7 @@
                         <div id="revealed_answers" class="w3-panel w3-card w3-pale-red"></div>
                     </div>
                 </div>
-                <div class="w3-row w3-center" style="width:100%; padding-top: 5%">
+                <div class="w3-row w3-center" style="padding-top: 5%">
                     <button id="reveal" class="w3-button w3-gray">Reveal answers</button>
                 </div>
             </div>
@@ -191,6 +193,8 @@
 			});
 			$("select#filter_by").change(function(){
 				update_filter_values();
+				filter_questions();
+				show_new_question();
 			});
 			$("select#filter_val").change(function(){
 				filter_questions();
