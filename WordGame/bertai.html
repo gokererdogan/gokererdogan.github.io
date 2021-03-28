@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html>  
 <head>
     <title>Word game!</title>
     <meta name="robots" content="noindex">
@@ -22,7 +22,10 @@
                 <select name="filter_val" id="filter_val">
                 </select>
             </div>
-            <div class="w3-row w3-xlarge" style="width: 100%; padding-top: 5%; padding-left: 3%; padding-right: 3%">
+            <div class="w3-row w3-small w3-center" style="padding-top: 1%">
+                (<span id="num_questions"></span> questions in selection)
+            </div>
+            <div class="w3-row w3-xlarge" style="width: 100%; padding-top: 2%; padding-left: 3%; padding-right: 3%">
                 <div class="w3-half", style="float: left">
                     Score: <span class="w3-text-black" id="score">0</span>
                 </div>
@@ -30,7 +33,7 @@
                     <button id="next" class="w3-button w3-gray" style="float: right">Next</button>
                 </div>
             </div>
-            <div class="w3-row w3-xlarge" style="padding-bottom: 5%">
+            <div class="w3-row w3-xlarge" style="padding-bottom: 3%">
                 <div class="w3-col w3-center w3-text-orange w3-xlarge">
                     <div id="message"></div>
                 </div>
@@ -143,7 +146,7 @@
 	                sel_questions.push(q);
 	            }
 	        }
-	        
+	        $("#num_questions").text(sel_questions.length);
 	    }
 	    
 	    update_filter_values = function(){
@@ -204,4 +207,10 @@
 
 </script>
 </body>
+<footer>
+<div class="w3-auto w3-content w3-text-gray w3-small">
+    <div class="w3-row w3-center w3-cell-bottom" style="padding-top: 10%">
+        by Goker Erdogan | <a href="http://www.gokererdogan.com">gokererdogan.com</a>
+    </div
+</footer>
 </html>
