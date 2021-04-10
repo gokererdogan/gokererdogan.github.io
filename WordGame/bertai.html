@@ -62,15 +62,18 @@
     </div>
 </div>
 <script type="text/javascript">
-        var all_questions;
-        var sel_questions;
+        var test_obj;
+        var questions;
         var qid;
         var q;
         var answers;
         var found_answers;
         var dd_vals;
-        var subject_dd_vals;
         var score = 0;
+        
+        write = function(){
+            test_obj = new Object("asd");
+        }
         
         answers_to_str = function(l){
             return l.map(w => w==q["ground_truth"] ? "<b>"+w+"</b>" : w).join(", ");
@@ -80,7 +83,7 @@
 	        var message = "";
 	        var message_color = "";
 		    var word = $("#word").val().toLowerCase();
-		    if (answers.includes(word)) {
+		    if (word in answers) {
 			    if (!found_answers.includes(word)) {
 			        var word_score = 1
 			        message = "Well done!"; 
@@ -116,8 +119,8 @@
 	    }
 	    
 	    show_new_question = function(){
-	        qid = Math.floor(Math.random() * sel_questions.length);
-			q = sel_questions[qid];
+	        qid = Math.floor(Math.random() * questions.length);
+			q = questions[qid];
 			    
 			q_parts = q["question"].split("[MASK]");
 			answers = q["answers"];
@@ -132,34 +135,39 @@
 	    }
 	    
 	    reveal_answers = function(){
-	        rev_answers = answers.sort();
+	        answers_arr = new Array();
+	        for (var ans in answers){
+	            answers_arr.push(ans);
+	        }
+	        rev_answers = answers_arr.sort();
 	        rev_answers_html = answers_to_str(rev_answers);
 	        $("#revealed_answers").html('Answers: ' + rev_answers_html);
 	    }
 	    
-	    filter_questions = function(){
-	        filter_by = $("select#filter_by").val();
-	        source_ids = dd_vals[filter_by][$("select#filter_val").val()]["ids"];
-	        sel_questions = new Array();
-	        for (sid of source_ids){
-	            for (q of all_questions[sid]){
-	                sel_questions.push(q);
-	            }
-	        }
-	        $("#num_questions").text(sel_questions.length);
+	    read_questions = function(){
+	    
+	        fname = $("select#filter_val").val();
+	        // read questions
+			$.getJSON("data/" + fname + ".json", function(data) {
+			    questions = data;
+			    $("#num_questions").text(questions.length);
+				show_new_question();
+			    });
 	    }
 	    
 	    update_filter_values = function(){
 	        $("select#filter_val").empty();
 	        filter_by = $("select#filter_by").val();
+	        last_val = "";
 	        for ([i, dd_val] of dd_vals[filter_by].entries()){
 	            $("select#filter_val").append($("<option>")
-                        .val(i)
+                        .val(dd_val["value"])
                         .html(dd_val["text"])
                 );
+                last_val = dd_val["value"];
 	        }
 	        // Select the last item in dropbox (i.e., default to After 1900 for year)
-	        $("select#filter_val").val(dd_vals[filter_by].length-1);
+	        $("select#filter_val").val(last_val);
 	    }
 
 		$(document).ready(function(){
@@ -173,15 +181,11 @@
                     );
 			    }
 			    update_filter_values();
+			    read_questions();
 			    });
+			
+			write();
 
-			// read questions
-			$.getJSON("data/questions.json", function(data) {
-			    all_questions = data;
-			    filter_questions();
-			    show_new_question();
-			    });
-			    
 			$("#word").keypress(function(event) {
 				if (event.which == 13) {
 					check_guess();
@@ -196,12 +200,11 @@
 			});
 			$("select#filter_by").change(function(){
 				update_filter_values();
-				filter_questions();
-				show_new_question();
+				read_questions();
 			});
 			$("select#filter_val").change(function(){
-				filter_questions();
-				show_new_question();
+			    console.log("dd change");
+				read_questions();
 			});
 		});
 
