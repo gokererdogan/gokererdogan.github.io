@@ -83,7 +83,7 @@
 	        var message = "";
 	        var message_color = "";
 		    var word = $("#word").val().toLowerCase();
-		    if (word in answers) {
+		    if (answers.includes(word)) {
 			    if (!found_answers.includes(word)) {
 			        var word_score = 1
 			        message = "Well done!"; 
@@ -124,6 +124,10 @@
 			    
 			q_parts = q["question"].split("[MASK]");
 			answers = q["answers"];
+			answers = new Array();
+	        for (var ans in q["answers"]){
+	            answers.push(ans);
+	        }
 			found_answers = new Array();
 	        $("#sentence_begin").text(q_parts[0]);
 			$("#sentence_end").text(q_parts[1]);
@@ -135,11 +139,7 @@
 	    }
 	    
 	    reveal_answers = function(){
-	        answers_arr = new Array();
-	        for (var ans in answers){
-	            answers_arr.push(ans);
-	        }
-	        rev_answers = answers_arr.sort();
+	        rev_answers = answers.sort();
 	        rev_answers_html = answers_to_str(rev_answers);
 	        $("#revealed_answers").html('Answers: ' + rev_answers_html);
 	    }
@@ -203,7 +203,6 @@
 				read_questions();
 			});
 			$("select#filter_val").change(function(){
-			    console.log("dd change");
 				read_questions();
 			});
 		});
