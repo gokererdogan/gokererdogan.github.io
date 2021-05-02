@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width initial-scale=1" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <title>A word game based on BERT - "What would BERT say?"</title>
+    <meta name="description" content="Goker Erdogan's personal website.
+">
+
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="canonical" href="http://gokererdogan.github.io/2021/05/02/ai-word-game/">
+       <!-- Bootstrap core CSS -->
+    <link href="/css/bootstrap.min.flatly.css" rel="stylesheet">
+       <!-- Syntax highlighting -->
+    <link href="/css/syntax.css" rel="stylesheet">
+    <style>
+    body {
+        font-size: 17px;
+        text-align: justify;
+    }
+    </style>
+    <script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-73032750-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+
+</head>
+
+
+  <body>
+
+    <header class="site-header">
+<div class="navbar navbar-default navbar-fixed-top">
+      <div class="container" style="max-width: 1000px;">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="/index.html">Goker Erdogan</a>
+        </div>
+        <div class="collapse navbar-collapse">
+          <ul class="nav navbar-nav">
+            <li><a href="/index.html#about">About</a></li>
+            <li><a href="/files/Goker_Erdogan_CV.pdf">CV</a></li>
+            <li><a href="/index.html#publications">Publications</a></li>
+            <li><a href="/index.html#teaching">Teaching</a></li>
+	    <li><a href="https://github.com/gokererdogan">Code</a></li>
+            <li><a href="/index.html#posts">Blog</a></li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+</div>
+<!--
+  <div class="wrapper">
+
+    <a class="site-title" href="/">Goker Erdogan</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+    </nav>
+
+  </div>
+-->
+</header>
+
+
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">A word game based on BERT - "What would BERT say?"</h1>
+    <p class="post-meta">May 2, 2021 • goker</p>
+  </header>
+
+  <article class="post-content" style="font-size: 18px">
+    <p>TL;DR: I created a simple word game using the natural language model BERT.<sup id="fnref:1" role="doc-noteref"><a href="#fn:1" class="footnote">1</a></sup> Click <strong><a href="/WordGame/bertai.html">here</a></strong> to play it.</p>
+
+<p>I like word puzzles, especially ones based on meanings of words (rather than just forming words from a set of given letters). A while back I had the idea of using a language model that does masked prediction (like BERT) to create a word game where the player tries to guess the missing word in a sentence.<sup id="fnref:2" role="doc-noteref"><a href="#fn:2" class="footnote">2</a></sup> After an initial attempt to implement it as a mobile app, I decided to do a web version and finally published it today: <a href="/WordGame/bertai.html">“What would BERT say?”</a>.</p>
+
+<p>For the source texts, I downloaded some books from Project Gutenberg, including the top 50 most downloaded books. After parsing the books into sentences, I pick one of the words in each sentence, mask it, and ask BERT to predict it. Top 20 words returned by BERT and the original word in the sentence constitute the answers. If you guess the original word, you get 3 points; if you guess any of the other words you get 1 point.</p>
+
+<p>Given my rather limited web programming skills, the game itself is rather minimalistic, and there is certainly a lot of room for improvement. Because there can be some preprocessing/parsing issues, and because the missing word is picked randomly, some of the questions can be too easy or too difficult. So I’d say no need to feel bad skipping questions.</p>
+
+<p>Hope you enjoy the game! Please send me an email if you have any questions or comments.</p>
+
+<h2 id="bibliography">Bibliography</h2>
+
+<div class="footnotes" role="doc-endnotes">
+  <ol>
+    <li id="fn:1" role="doc-endnote">
+      <p>Devlin, Jacob; Chang, Ming-Wei; Lee, Kenton; Toutanova, Kristina (11 October 2018). “BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding”. arXiv:1810.04805v2 <a href="#fnref:1" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+    <li id="fn:2" role="doc-endnote">
+      <p>One can do something similar perhaps using a thesaurus but using a language model that was trained on large amounts of text provides much better predictions for the missing word. <a href="#fnref:2" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+  </ol>
+</div>
+
+  </article>
+
+</div>
+<script type="text/javascript"
+    src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col  footer-col-1">
+        <ul class="contact-list">
+          <li>Goker Erdogan</li>
+          <!-- <li><a href="mailto:gokererdogan@gmail.com">gokererdogan@gmail.com</a></li> -->
+        </ul>
+      </div>
+
+      <div class="footer-col  footer-col-2" style="float: right;">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/gokererdogan">
+              <span class="icon  icon--github">
+                <svg viewBox="0 0 16 16">
+                  <path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/>
+                </svg>
+              </span>
+
+              <span class="username">gokererdogan</span>
+            </a>
+          </li>
+          
+
+          
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+<!-- Bootstrap core JavaScript
+================================================== -->
+<!-- Placed at the end of the document so the pages load faster -->
+<script src="/js/jquery.js"></script>
+<script src="/js/bootstrap.min.js"></script>
+
+
+  </body>
+
+</html>
