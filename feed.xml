@@ -4,10 +4,10 @@
     <title>Goker Erdogan</title>
     <description>Goker Erdogan's personal website.
 </description>
-    <link>http://localhost:4000/</link>
-    <atom:link href="http://localhost:4000/feed.xml" rel="self" type="application/rss+xml" />
-    <pubDate>Sat, 10 Apr 2021 20:08:26 +0100</pubDate>
-    <lastBuildDate>Sat, 10 Apr 2021 20:08:26 +0100</lastBuildDate>
+    <link>http://gokererdogan.github.io/</link>
+    <atom:link href="http://gokererdogan.github.io/feed.xml" rel="self" type="application/rss+xml" />
+    <pubDate>Sun, 02 May 2021 23:27:32 +0100</pubDate>
+    <lastBuildDate>Sun, 02 May 2021 23:27:32 +0100</lastBuildDate>
     <generator>Jekyll v3.9.0</generator>
     
       <item>
@@ -55,8 +55,8 @@
 &lt;/div&gt;
 </description>
         <pubDate>Fri, 12 Feb 2021 12:00:00 +0000</pubDate>
-        <link>http://localhost:4000/2021/02/12/good-regulator-theorem/</link>
-        <guid isPermaLink="true">http://localhost:4000/2021/02/12/good-regulator-theorem/</guid>
+        <link>http://gokererdogan.github.io/2021/02/12/good-regulator-theorem/</link>
+        <guid isPermaLink="true">http://gokererdogan.github.io/2021/02/12/good-regulator-theorem/</guid>
         
         <category>reinforcement learning</category>
         
@@ -431,8 +431,8 @@ However, in practice it exhibits too high variance to be useful.&lt;/p&gt;
 &lt;/div&gt;
 </description>
         <pubDate>Tue, 15 Aug 2017 13:00:00 +0100</pubDate>
-        <link>http://localhost:4000/2017/08/15/variational-autoencoder-explained/</link>
-        <guid isPermaLink="true">http://localhost:4000/2017/08/15/variational-autoencoder-explained/</guid>
+        <link>http://gokererdogan.github.io/2017/08/15/variational-autoencoder-explained/</link>
+        <guid isPermaLink="true">http://gokererdogan.github.io/2017/08/15/variational-autoencoder-explained/</guid>
         
         <category>variational methods</category>
         
@@ -563,8 +563,8 @@ However, in practice it exhibits too high variance to be useful.&lt;/p&gt;
 &lt;/div&gt;
 </description>
         <pubDate>Fri, 01 Jul 2016 13:00:00 +0100</pubDate>
-        <link>http://localhost:4000/2016/07/01/reparameterization-trick/</link>
-        <guid isPermaLink="true">http://localhost:4000/2016/07/01/reparameterization-trick/</guid>
+        <link>http://gokererdogan.github.io/2016/07/01/reparameterization-trick/</link>
+        <guid isPermaLink="true">http://gokererdogan.github.io/2016/07/01/reparameterization-trick/</guid>
         
         <category>variational methods</category>
         
@@ -818,8 +818,8 @@ https://github.com/gokererdogan
 &lt;/div&gt;
 </description>
         <pubDate>Fri, 03 Jun 2016 13:00:00 +0100</pubDate>
-        <link>http://localhost:4000/2016/06/03/variational-autoencoder/</link>
-        <guid isPermaLink="true">http://localhost:4000/2016/06/03/variational-autoencoder/</guid>
+        <link>http://gokererdogan.github.io/2016/06/03/variational-autoencoder/</link>
+        <guid isPermaLink="true">http://gokererdogan.github.io/2016/06/03/variational-autoencoder/</guid>
         
         <category>variational methods</category>
         
@@ -851,8 +851,8 @@ https://github.com/gokererdogan
 Source code is available on request due to its large size.&lt;/p&gt;
 </description>
         <pubDate>Mon, 23 Jan 2012 23:44:20 +0000</pubDate>
-        <link>http://localhost:4000/2012/01/23/multiple-kernel-learning-for-extracting-protein-protein-interactions/</link>
-        <guid isPermaLink="true">http://localhost:4000/2012/01/23/multiple-kernel-learning-for-extracting-protein-protein-interactions/</guid>
+        <link>http://gokererdogan.github.io/2012/01/23/multiple-kernel-learning-for-extracting-protein-protein-interactions/</link>
+        <guid isPermaLink="true">http://gokererdogan.github.io/2012/01/23/multiple-kernel-learning-for-extracting-protein-protein-interactions/</guid>
         
         <category>bioinformatics</category>
         
@@ -906,8 +906,8 @@ You can see the code &lt;a href=&quot;https://github.com/gokererdogan/OutlierDet
 &lt;p&gt;Here is a &lt;a href=&quot;/files/Erdogan_2012_MScThesis.pdf&quot;&gt;link&lt;/a&gt; to my thesis if anyone is interested.&lt;/p&gt;
 </description>
         <pubDate>Fri, 30 Dec 2011 16:04:29 +0000</pubDate>
-        <link>http://localhost:4000/2011/12/30/outlier-detection-toolbox-in-matlab/</link>
-        <guid isPermaLink="true">http://localhost:4000/2011/12/30/outlier-detection-toolbox-in-matlab/</guid>
+        <link>http://gokererdogan.github.io/2011/12/30/outlier-detection-toolbox-in-matlab/</link>
+        <guid isPermaLink="true">http://gokererdogan.github.io/2011/12/30/outlier-detection-toolbox-in-matlab/</guid>
         
         <category>ActiveOutler</category>
         
@@ -1108,8 +1108,8 @@ Below you can see sample code to initialize, train and test MoE model with synth
 &lt;p&gt;You can find data structures and functions for MoE model, synthetic classification dataset and sample code given above in the source code which you can download &lt;a href=&quot;/files/MoE_C.rar&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
 </description>
         <pubDate>Mon, 04 Jul 2011 18:42:58 +0100</pubDate>
-        <link>http://localhost:4000/2011/07/04/mixture-of-experts-c-implementation-and-sparse-input-data/</link>
-        <guid isPermaLink="true">http://localhost:4000/2011/07/04/mixture-of-experts-c-implementation-and-sparse-input-data/</guid>
+        <link>http://gokererdogan.github.io/2011/07/04/mixture-of-experts-c-implementation-and-sparse-input-data/</link>
+        <guid isPermaLink="true">http://gokererdogan.github.io/2011/07/04/mixture-of-experts-c-implementation-and-sparse-input-data/</guid>
         
         <category>c</category>
         
@@ -1194,8 +1194,8 @@ For regression, \(f_h = \frac{ g_h exp ( 0.5 \Sigma_i (r_i - y_{ih})^2 )}{\Sigma
 
 </description>
         <pubDate>Fri, 01 Jul 2011 23:38:37 +0100</pubDate>
-        <link>http://localhost:4000/2011/07/01/mixture-of-experts/</link>
-        <guid isPermaLink="true">http://localhost:4000/2011/07/01/mixture-of-experts/</guid>
+        <link>http://gokererdogan.github.io/2011/07/01/mixture-of-experts/</link>
+        <guid isPermaLink="true">http://gokererdogan.github.io/2011/07/01/mixture-of-experts/</guid>
         
         <category>gradient ascent</category>
         
@@ -1290,8 +1290,8 @@ I’d be happy to hear your questions, comments &amp;amp; suggestions.&lt;br /&g
 
 </description>
         <pubDate>Fri, 11 Feb 2011 13:14:36 +0000</pubDate>
-        <link>http://localhost:4000/2011/02/11/informed-search-methods/</link>
-        <guid isPermaLink="true">http://localhost:4000/2011/02/11/informed-search-methods/</guid>
+        <link>http://gokererdogan.github.io/2011/02/11/informed-search-methods/</link>
+        <guid isPermaLink="true">http://gokererdogan.github.io/2011/02/11/informed-search-methods/</guid>
         
         <category>8 Puzzle</category>
         
@@ -1531,8 +1531,8 @@ State: 0M 0C |-B| 3M 3C, Depth: 11, Path Cost: 11, Applied Operator: Move 1 M 1 
 &lt;p&gt;Feel free to contact me for any bug reports, suggestions and I’d be glad to answer your questions.&lt;/p&gt;
 </description>
         <pubDate>Mon, 07 Feb 2011 19:14:13 +0000</pubDate>
-        <link>http://localhost:4000/2011/02/07/uninformed-search-and-constraint-satisfaction-problems/</link>
-        <guid isPermaLink="true">http://localhost:4000/2011/02/07/uninformed-search-and-constraint-satisfaction-problems/</guid>
+        <link>http://gokererdogan.github.io/2011/02/07/uninformed-search-and-constraint-satisfaction-problems/</link>
+        <guid isPermaLink="true">http://gokererdogan.github.io/2011/02/07/uninformed-search-and-constraint-satisfaction-problems/</guid>
         
         <category>AI</category>
         
